@@ -5,6 +5,7 @@ from torch.nn import functional as F
 from attention import SelfAttention, CrossAttention
 
 class UNetOutputLayer(nn.Module):
+
     def __init__(self, in_chan, out_chan):
         super().__init__()
         self.groupnorm = nn.GroupNorm(32, in_chan)
@@ -48,7 +49,7 @@ class UNetAttentionBlock(nn.Module):
 
 class UNetResidualBlock(nn.Module):
     def __init__(self, in_chan, out_chan, n_time=1280):
-        super.__init__()
+        super().__init__()
         self.linear_time = nn.Linear(n_time, out_chan)
         self.conv_merged = nn.Conv2d(out_chan, out_chan, kernel_size=3, padding=1)
 
@@ -89,7 +90,7 @@ class SwitchSequential(nn.Sequential):
 
 class UNet(nn.Module):
     def __init__(self):
-        super.__init__()
+        super().__init__()
         self.encoders = nn.ModuleList([
                                        SwitchSequential(UNetResidualBlock(320,320), UNetAttentionBlock(8,40)),
                                        SwitchSequential(nn.Conv2d(320,320,kernel_size=3, stride=2, padding=1)),
@@ -129,7 +130,7 @@ class UNetDiffusion(nn.Module):
         super().__init__()
         self.time_embedding = TimeEmbedding(320)
         self.unet = UNet()
-        self.unet_output = UNetOutputLayer(in_channels=320, out_channels=4)
+        self.unet_output = UNetOutputLayer(in_chan=320, out_chan=4)
 
     def forward(self, image_latent, text_context, time_embed):
         '''
