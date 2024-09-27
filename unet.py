@@ -1,19 +1,22 @@
 from torch import nn
 import torch
+from tqdm import tqdm
+
 from time_embedding import TimeEmbedding
 from torch.nn import functional as F
 from attention import SelfAttention, CrossAttention
 from dataset import create_dataloader
 
 class Conv2dDouble(nn.Module):
-    def __init__(self, in_chan, out_chan):
+    def __init__(self, in_chan, out_chan, mid_chan=None):
         super().__init__()
-
+        if not mid_chan:
+            mid_chan = out_chan
         self.conv = nn.Sequential(
-            nn.Conv2d(in_chan, out_chan, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(out_chan),
+            nn.Conv2d(in_chan, mid_chan, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(mid_chan),
             nn.ReLU(),
-            nn.Conv2d(out_chan, out_chan, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(mid_chan, out_chan, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_chan),
             nn.ReLU()
         )
@@ -30,10 +33,10 @@ class DownModule(nn.Module):
         return self.pool_and_conv(x)
 
 class UpModule(nn.Module):
-    def __init__(self,in_chan, out_chan):
+    def __init__(self,in_chan, mid_chan, out_chan):
         super().__init__()
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        self.conv_double = Conv2dDouble(in_chan, out_chan)
+        self.conv_double = Conv2dDouble(in_chan, out_chan, mid_chan)
 
     def forward(self, input, residual):
         input = self.upsample(input)
@@ -54,10 +57,14 @@ class UNet(nn.Module):
         self.down3 = DownModule(256, 512)
         self.down4 = DownModule(512, 512)
 
-        self.up1 = UpModule(1024, 256)
-        self.up2 = UpModule(512, 128)
-        self.up3 = UpModule(256, 64)
-        self.up4 = UpModule(128, 64)
+        self.up1 = UpModule(1024, 512, 256)
+        self.up2 = UpModule(512, 256, 128) # in_chan of curr layer != out_chan of previous layer, since in the upstream layers we *concatenate the input tensor with a residual from the parallel downstream layer*
+        self.up3 = UpModule(256, 128, 64)
+        self.up4 = UpModule(128, 64, 64)
+
+        self.out = Conv2dDouble(64, n_channels)
+
+
 
     def forward(self, image_latent, text_context, time_embed):
         '''
@@ -74,13 +81,14 @@ class UNet(nn.Module):
         x = self.up2(x, x3)
         x = self.up3(x, x2)
         x = self.up4(x, x1)
+        x = self.out(x)
         return x
 
 class UNetDiffusion(nn.Module):
-    def __init__(self):
+    def __init__(self, n_channels):
         super().__init__()
         self.time_embedding = TimeEmbedding(320)
-        self.unet = UNet()
+        self.unet = UNet(n_channels=n_channels)
 
     def forward(self, image_latent, text_context, time_embed):
         '''
@@ -105,9 +113,12 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device):
     model.train()
 
     for epoch in range(epochs_num):
-        for i, data in enumerate(training_loader):
-            inputs, labels = data
-            inputs, labels = inputs.to(device), labels.to(device)
+        print("epoch:", epoch)
+        for i, data in tqdm(enumerate(training_loader)):
+            inputs, _ = data
+            inputs = inputs.to(device)
+
+            noisy_inputs = torch.randn(inputs.shape, dtype=inputs.dtype).to(device)
 
             optimizer.zero_grad()
 
@@ -123,7 +134,7 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device):
 
             outputs = model(image_latent=inputs, text_context=text_context, time_embed=time_embed)
 
-            loss = loss_function(outputs, labels)
+            loss = loss_function(outputs, noisy_inputs)
 
             loss.backward()
 
@@ -134,8 +145,6 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device):
                 last_loss = running_loss / 1000 # loss per batch
                 print('batch {} loss: {}'.format(i + 1, last_loss))
                 running_loss = 0.
-
-            return None
 
     return last_loss
 
@@ -150,7 +159,7 @@ epochs_num = 1
 c_latent = 3
 device = 'cuda'
 
-model = UNetDiffusion()
+model = UNetDiffusion(n_channels=c_latent)
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0)
 
