@@ -66,13 +66,8 @@ class UNet(nn.Module):
 
 
 
-    def forward(self, image_latent, text_context, time_embed):
-        '''
-        :param image_latent: (B,4,h/8,w/8)
-        :param text_context: (B,seq_len,embed_dim)
-        :param time_embed: (1,1280)
-        '''
-        x1 = self.inc(image_latent)
+    def forward(self, image):
+        x1 = self.inc(image)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
         x4 = self.down3(x3)
@@ -90,19 +85,8 @@ class UNetDiffusion(nn.Module):
         self.time_embedding = TimeEmbedding(320)
         self.unet = UNet(n_channels=n_channels)
 
-    def forward(self, image_latent, text_context, time_embed):
-        '''
-        image_latent: (B, 4, H/8, W/8), the latent representation of the image, after the VAE-encoder, plus added noise
-        text_context: (B, seq_len, embed_len), the prompt after passing CLIP encoding, seq_len is the max len of clip's output
-        time_embed: (1, 320), the current timestep's in some (?) space
-        '''
-
-        # (1,320) -> (1,1280)
-        time_embed = self.time_embedding(time_embed)
-
-        # (B, 4, H/8, W/8) -> (B, 320, H/8, W/8)
-        output = self.unet(image_latent, text_context, time_embed)
-
+    def forward(self, image):
+        output = self.unet(image)
         return output
 
 def train(model, optimizer, loss_function, training_loader, epochs_num, device):
@@ -115,47 +99,34 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device):
     for epoch in range(epochs_num):
         print("epoch:", epoch)
         for i, data in tqdm(enumerate(training_loader)):
-            inputs, _ = data
-            inputs = inputs.to(device)
-
-            noisy_inputs = torch.randn(inputs.shape, dtype=inputs.dtype).to(device)
-
             optimizer.zero_grad()
 
-            '''
-            image_latent: (B, 4, H/8, W/8), the latent representation of the image, after the VAE-encoder, plus added noise
-            text_context: (B, seq_len, embed_len), the prompt after passing CLIP encoding, seq_len is the max len of clip's output
-            time_embed: (1, 320), the current timestep's in some (?) space
-            '''
+            clean_images, _ = data
+            clean_images = clean_images.to(device)
 
-            seq_len, embed_len = 80, 512
-            text_context = torch.ones((batch_size, seq_len, embed_len)).to(device)
-            time_embed = torch.ones((1,320)).to(device)
+            noisy_images = torch.randn(clean_images.shape, dtype=clean_images.dtype, device=device) * 0.5 + 0.5
 
-            outputs = model(image_latent=inputs, text_context=text_context, time_embed=time_embed)
+            denoised_images = model(image=noisy_images)
 
-            loss = loss_function(outputs, noisy_inputs)
+            loss = loss_function(denoised_images, clean_images)
 
             loss.backward()
 
             optimizer.step()
 
             running_loss += loss.item()
-            if i % 1000 == 999:
-                last_loss = running_loss / 1000 # loss per batch
-                print('batch {} loss: {}'.format(i + 1, last_loss))
-                running_loss = 0.
 
-    return last_loss
+        print("loss:", running_loss/len(training_loader))
+        running_loss = 0
 
 def loss_function_mse(model_out, target):
     loss = F.mse_loss(model_out, target, reduction='none')
     return loss.mean()
 
-data_path = "../dit/data/tiny"
-image_size = 256
+data_path = "../dit/data/train"
+image_size = 32
 batch_size = 16
-epochs_num = 1
+epochs_num = 10
 c_latent = 3
 device = 'cuda'
 
