@@ -5,110 +5,59 @@ from torch.nn import functional as F
 from attention import SelfAttention, CrossAttention
 from dataset import create_dataloader
 
-class UNetOutputLayer(nn.Module):
-
+class Conv2dDouble(nn.Module):
     def __init__(self, in_chan, out_chan):
         super().__init__()
-        self.groupnorm = nn.GroupNorm(32, in_chan)
-        self.conv = nn.Conv2d(in_chan, out_chan, kernel_size=3, padding=1)
+
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_chan, out_chan, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(out_chan),
+            nn.ReLU(),
+            nn.Conv2d(out_chan, out_chan, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(out_chan),
+            nn.ReLU()
+        )
 
     def forward(self, x):
-        '''
-        x: (B,320,H/8,W/8), or (B,in_chan,H/8,W/8)
-        '''
-        # (B,320,H/8,W/8) -> (B,320,H/8,W/8)
-        x = self.groupnorm(x)
+        return self.conv(x)
 
-        # (B,320,H/8,W/8) -> (B,320,H/8,W/8)
-        x = F.silu(x)
-
-        # (B,320,H/8,W/8) -> (B,4,H/8,W/8)
-        x = self.conv(x)
-
-        # (B,4,H/8,W/8)
-        return x
-
-class UNetAttentionBlock(nn.Module):
-    def __init__(self, n_head: int, n_embd: int, d_context=768):
+class DownModule(nn.Module):
+    def __init__(self, in_chan, out_chan):
         super().__init__()
-        channels = n_head * n_embd
-        self.attention_1 = SelfAttention(n_head, channels, in_proj_bias=False)
-        self.attention_2 = CrossAttention(n_head, channels, d_context, in_proj_bias=False)
-        self.conv_output = nn.Conv2d(channels, channels, kernel_size=1, padding=0)
+        conv_double = Conv2dDouble(in_chan, out_chan)
+        self.pool_and_conv = nn.Sequential(nn.MaxPool2d(2), conv_double)
+    def forward(self, x):
+        return self.pool_and_conv(x)
 
-    def forward(self, x, text_context):
-        '''
-        :param x: B,features_len,h,w
-        :param text_context: B,seq_len,embed_dim
-        '''
-        residue_long = x
-
-        x = self.attention_1(x)
-        x = self.attention_2(x, text_context)
-
-        return self.conv_output(x) + residue_long
-
-class UNetResidualBlock(nn.Module):
-    def __init__(self, in_chan, out_chan, n_time=1280):
+class UpModule(nn.Module):
+    def __init__(self,in_chan, out_chan):
         super().__init__()
-        self.linear_time = nn.Linear(n_time, out_chan)
-        self.conv_merged = nn.Conv2d(out_chan, out_chan, kernel_size=3, padding=1)
+        self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+        self.conv_double = Conv2dDouble(in_chan, out_chan)
 
-        if in_chan == out_chan:
-            self.residual_layer = nn.Identity()
-        else:
-            self.residual_layer = nn.Conv2d(in_chan, out_chan, kernel_size=1, padding=0)
-    def forward(self, features, time_embed):
-        '''
-        :param features: B,in_chan,h,w
-        :param time_embed: 1,1280
-        '''
+    def forward(self, input, residual):
+        input = self.upsample(input)
 
-        residue = features
+        output = torch.cat([residual,input], dim=1)
 
-        time_embed = self.linear_time(time_embed)
+        output = self.conv_double(output)
 
-        print("shapes:", features.shape, time_embed.unsqueeze(-1).unsqueeze(-1).shape)
-        merged = features + time_embed.unsqueeze(-1).unsqueeze(-1)
-
-        merged = self.conv_merged(merged)
-
-        return merged + self.residual_layer(residue)
-
-class SwitchSequential(nn.Sequential):
-    '''
-    we pass this class 3 types of inputs in a single forward call,
-    and this class contains multiple layers, each layer is using a different subset of these inputs.
-    '''
-    def forward(self, x, text_context, time_embed):
-        for layer in self:
-            if isinstance(layer, UNetAttentionBlock):
-                x = layer(x, text_context)
-            elif isinstance(layer, UNetResidualBlock):
-                x = layer(x, time_embed)
-            else:
-                print("x.shape:", x.shape)
-                x = layer(x)
-        return x
+        return output
 
 class UNet(nn.Module):
-    def __init__(self):
+    def __init__(self, n_channels):
         super().__init__()
-        self.encoders = nn.ModuleList([
-                                       SwitchSequential(nn.Conv2d(4, 320, kernel_size=3, padding=1)),
-                                       SwitchSequential(UNetResidualBlock(320,320), UNetAttentionBlock(8,40)),
-                                       SwitchSequential(nn.Conv2d(320,320,kernel_size=3, stride=2, padding=1)),
-                                       SwitchSequential(UNetResidualBlock(320,1280))
-                                       ])
+        self.inc = Conv2dDouble(n_channels, 64)
 
-        self.bottleneck = SwitchSequential(UNetResidualBlock(1280,1280),
-                                           UNetAttentionBlock(8,160),
-                                           UNetResidualBlock(1280,1280))
+        self.down1 = DownModule(64, 128)
+        self.down2 = DownModule(128, 256)
+        self.down3 = DownModule(256, 512)
+        self.down4 = DownModule(512, 512)
 
-        self.decoders = nn.ModuleList([
-            SwitchSequential(UNetResidualBlock(2560,1280)),
-            SwitchSequential(UNetResidualBlock(1280,320), UNetAttentionBlock(8,40))
-        ])
+        self.up1 = UpModule(1024, 256)
+        self.up2 = UpModule(512, 128)
+        self.up3 = UpModule(256, 64)
+        self.up4 = UpModule(128, 64)
 
     def forward(self, image_latent, text_context, time_embed):
         '''
@@ -116,25 +65,22 @@ class UNet(nn.Module):
         :param text_context: (B,seq_len,embed_dim)
         :param time_embed: (1,1280)
         '''
-
-        skip_connections = []
-        x = image_latent
-        for layers in self.encoders:
-            x = layers(x, text_context, time_embed)
-            skip_connections.append(x)
-
-        x = self.bottleneck(x, text_context, time_embed)
-
-        for layers in self.decoders:
-            x = torch.cat((x, skip_connections.pop()), dim=1)
-            x = layers(x, text_context, time_embed)
+        x1 = self.inc(image_latent)
+        x2 = self.down1(x1)
+        x3 = self.down2(x2)
+        x4 = self.down3(x3)
+        x5 = self.down4(x4)
+        x = self.up1(x5, x4)
+        x = self.up2(x, x3)
+        x = self.up3(x, x2)
+        x = self.up4(x, x1)
+        return x
 
 class UNetDiffusion(nn.Module):
     def __init__(self):
         super().__init__()
         self.time_embedding = TimeEmbedding(320)
         self.unet = UNet()
-        self.unet_output = UNetOutputLayer(in_chan=320, out_chan=4)
 
     def forward(self, image_latent, text_context, time_embed):
         '''
@@ -148,9 +94,6 @@ class UNetDiffusion(nn.Module):
 
         # (B, 4, H/8, W/8) -> (B, 320, H/8, W/8)
         output = self.unet(image_latent, text_context, time_embed)
-
-        # (B, 320, H/8, W/8) -> (B, 4, H/8, W/8)
-        output = self.unet_output(output)
 
         return output
 
@@ -200,10 +143,11 @@ def loss_function_mse(model_out, target):
     loss = F.mse_loss(model_out, target, reduction='none')
     return loss.mean()
 
-data_path = "../data/train"
+data_path = "../dit/data/tiny"
 image_size = 256
 batch_size = 16
 epochs_num = 1
+c_latent = 3
 device = 'cuda'
 
 model = UNetDiffusion()

@@ -10,6 +10,8 @@ class SelfAttention(nn.Module):
         self.out_proj = nn.Linear(d_embed, d_embed, bias=out_proj_bias)
 
     def forward(self, x, causal_mask=False):
+        input_shape = x.shape
+
         q, k, v = self.in_proj(x).chunk(3, dim=-1)
 
         weight = q @ k.transpose(-1,-2)

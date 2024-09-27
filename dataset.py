@@ -20,7 +20,7 @@ def create_dataloader(data_path, image_size, batch_size):
         dataset,
         batch_size=int(batch_size),
         shuffle=True,
-        num_workers=4,
+        # num_workers=4,
         pin_memory=True,
         drop_last=True
     )
