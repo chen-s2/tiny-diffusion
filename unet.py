@@ -3,6 +3,7 @@ import torch
 from time_embedding import TimeEmbedding
 from torch.nn import functional as F
 from attention import SelfAttention, CrossAttention
+from dataset import create_dataloader
 
 class UNetOutputLayer(nn.Module):
 
@@ -67,6 +68,7 @@ class UNetResidualBlock(nn.Module):
 
         time_embed = self.linear_time(time_embed)
 
+        print("shapes:", features.shape, time_embed.unsqueeze(-1).unsqueeze(-1).shape)
         merged = features + time_embed.unsqueeze(-1).unsqueeze(-1)
 
         merged = self.conv_merged(merged)
@@ -85,6 +87,7 @@ class SwitchSequential(nn.Sequential):
             elif isinstance(layer, UNetResidualBlock):
                 x = layer(x, time_embed)
             else:
+                print("x.shape:", x.shape)
                 x = layer(x)
         return x
 
@@ -92,6 +95,7 @@ class UNet(nn.Module):
     def __init__(self):
         super().__init__()
         self.encoders = nn.ModuleList([
+                                       SwitchSequential(nn.Conv2d(4, 320, kernel_size=3, padding=1)),
                                        SwitchSequential(UNetResidualBlock(320,320), UNetAttentionBlock(8,40)),
                                        SwitchSequential(nn.Conv2d(320,320,kernel_size=3, stride=2, padding=1)),
                                        SwitchSequential(UNetResidualBlock(320,1280))
@@ -150,5 +154,64 @@ class UNetDiffusion(nn.Module):
 
         return output
 
-unet_diffusion = UNetDiffusion()
+def train(model, optimizer, loss_function, training_loader, epochs_num, device):
+    running_loss = 0.
+    last_loss = 0.
+
+    model.to(device)
+    model.train()
+
+    for epoch in range(epochs_num):
+        for i, data in enumerate(training_loader):
+            inputs, labels = data
+            inputs, labels = inputs.to(device), labels.to(device)
+
+            optimizer.zero_grad()
+
+            '''
+            image_latent: (B, 4, H/8, W/8), the latent representation of the image, after the VAE-encoder, plus added noise
+            text_context: (B, seq_len, embed_len), the prompt after passing CLIP encoding, seq_len is the max len of clip's output
+            time_embed: (1, 320), the current timestep's in some (?) space
+            '''
+
+            seq_len, embed_len = 80, 512
+            text_context = torch.ones((batch_size, seq_len, embed_len)).to(device)
+            time_embed = torch.ones((1,320)).to(device)
+
+            outputs = model(image_latent=inputs, text_context=text_context, time_embed=time_embed)
+
+            loss = loss_function(outputs, labels)
+
+            loss.backward()
+
+            optimizer.step()
+
+            running_loss += loss.item()
+            if i % 1000 == 999:
+                last_loss = running_loss / 1000 # loss per batch
+                print('batch {} loss: {}'.format(i + 1, last_loss))
+                running_loss = 0.
+
+            return None
+
+    return last_loss
+
+def loss_function_mse(model_out, target):
+    loss = F.mse_loss(model_out, target, reduction='none')
+    return loss.mean()
+
+data_path = "../data/train"
+image_size = 256
+batch_size = 16
+epochs_num = 1
+device = 'cuda'
+
+model = UNetDiffusion()
+
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0)
+
+training_loader = create_dataloader(data_path, image_size, batch_size)
+
+train(model=model, optimizer=optimizer, loss_function=loss_function_mse, training_loader=training_loader, epochs_num=epochs_num, device=device)
+
 print("done")
