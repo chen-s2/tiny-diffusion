@@ -1,7 +1,6 @@
-from torch import nn
 import torch
+from torch import nn
 from tqdm import tqdm
-
 from time_embedding import TimeEmbedding
 from torch.nn import functional as F
 from attention import SelfAttention, CrossAttention
@@ -40,11 +39,8 @@ class UpModule(nn.Module):
 
     def forward(self, input, residual):
         input = self.upsample(input)
-
         output = torch.cat([residual,input], dim=1)
-
         output = self.conv_double(output)
-
         return output
 
 class UNet(nn.Module):
@@ -63,8 +59,6 @@ class UNet(nn.Module):
         self.up4 = UpModule(128, 64, 64)
 
         self.out = Conv2dDouble(64, n_channels)
-
-
 
     def forward(self, image):
         x1 = self.inc(image)
@@ -116,26 +110,14 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device):
 
             running_loss += loss.item()
 
-        print("loss:", running_loss/len(training_loader))
+        last_loss = running_loss/len(training_loader)
+        print("loss:", last_loss)
         running_loss = 0
+
+    model_name = './models/model_' + str(round(last_loss,4)) + '.pth'
+    torch.save(model, model_name)
+    print('saved model to:', model_name)
 
 def loss_function_mse(model_out, target):
     loss = F.mse_loss(model_out, target, reduction='none')
     return loss.mean()
-
-data_path = "../dit/data/train"
-image_size = 32
-batch_size = 16
-epochs_num = 10
-c_latent = 3
-device = 'cuda'
-
-model = UNetDiffusion(n_channels=c_latent)
-
-optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0)
-
-training_loader = create_dataloader(data_path, image_size, batch_size)
-
-train(model=model, optimizer=optimizer, loss_function=loss_function_mse, training_loader=training_loader, epochs_num=epochs_num, device=device)
-
-print("done")
