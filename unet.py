@@ -1,7 +1,8 @@
+import numpy as np
 import torch
 from torch import nn
 from tqdm import tqdm
-from time_embedding import TimeEmbedding
+from time import Time
 from torch.nn import functional as F
 from attention import SelfAttention, CrossAttention
 from dataset import create_dataloader
@@ -11,25 +12,31 @@ class Conv2dDouble(nn.Module):
         super().__init__()
         if not mid_chan:
             mid_chan = out_chan
-        self.conv = nn.Sequential(
+        self.conv1 = nn.Sequential(
             nn.Conv2d(in_chan, mid_chan, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(mid_chan),
-            nn.ReLU(),
+            nn.ReLU())
+        self.time = Time()
+        self.conv2 = nn.Sequential(
             nn.Conv2d(mid_chan, out_chan, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_chan),
-            nn.ReLU()
-        )
+            nn.ReLU())
 
-    def forward(self, x):
-        return self.conv(x)
+    def forward(self, x, t_emb):
+        x = self.conv1(x)
+        x = self.conv2(x + self.time(t_emb))
+        return x
 
 class DownModule(nn.Module):
     def __init__(self, in_chan, out_chan):
         super().__init__()
-        conv_double = Conv2dDouble(in_chan, out_chan)
-        self.pool_and_conv = nn.Sequential(nn.MaxPool2d(2), conv_double)
-    def forward(self, x):
-        return self.pool_and_conv(x)
+        self.maxpool = nn.MaxPool2d(2)
+        self.conv_double = Conv2dDouble(in_chan, out_chan)
+
+    def forward(self, x, t_emb):
+        y = self.maxpool(x)
+        y = self.conv_double(y, t_emb)
+        return y
 
 class UpModule(nn.Module):
     def __init__(self,in_chan, mid_chan, out_chan):
@@ -37,10 +44,10 @@ class UpModule(nn.Module):
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
         self.conv_double = Conv2dDouble(in_chan, out_chan, mid_chan)
 
-    def forward(self, input, residual):
+    def forward(self, input, residual, t_emb):
         input = self.upsample(input)
         output = torch.cat([residual,input], dim=1)
-        output = self.conv_double(output)
+        output = self.conv_double(output, t_emb)
         return output
 
 class UNet(nn.Module):
@@ -60,32 +67,23 @@ class UNet(nn.Module):
 
         self.out = Conv2dDouble(64, n_channels)
 
-    def forward(self, image):
-        x1 = self.inc(image)
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        x5 = self.down4(x4)
-        x = self.up1(x5, x4)
-        x = self.up2(x, x3)
-        x = self.up3(x, x2)
-        x = self.up4(x, x1)
-        x = self.out(x)
+    def forward(self, image, t_emb):
+        x1 = self.inc(image, t_emb)
+        x2 = self.down1(x1, t_emb)
+        x3 = self.down2(x2, t_emb)
+        x4 = self.down3(x3, t_emb)
+        x5 = self.down4(x4, t_emb)
+        x = self.up1(x5, x4, t_emb)
+        x = self.up2(x, x3, t_emb)
+        x = self.up3(x, x2, t_emb)
+        x = self.up4(x, x1, t_emb)
+        x = self.out(x, t_emb)
         return x
 
-class UNetDiffusion(nn.Module):
-    def __init__(self, n_channels):
-        super().__init__()
-        self.time_embedding = TimeEmbedding(320)
-        self.unet = UNet(n_channels=n_channels)
-
-    def forward(self, image):
-        output = self.unet(image)
-        return output
-
-def train(model, optimizer, loss_function, training_loader, epochs_num, device):
+def train(model, optimizer, loss_function, training_loader, epochs_num, device, T):
     running_loss = 0.
     last_loss = 0.
+    beta = np.linspace(1e-4, 0.02, num=T)
 
     model.to(device)
     model.train()
@@ -94,20 +92,24 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device):
         print("epoch:", epoch)
         for i, data in tqdm(enumerate(training_loader)):
             optimizer.zero_grad()
+            x0, _ = data
 
-            clean_images, _ = data
-            clean_images = clean_images.to(device)
+            x0 = x0.to(device)
+            epsilon = torch.randn(x0.shape, dtype=x0.dtype, device=device)
+            t = int(torch.randint(1, T, (1,), dtype=x0.dtype, device=device))
 
-            noisy_images = torch.randn(clean_images.shape, dtype=clean_images.dtype, device=device) * 0.5 + 0.5
+            alpha_1_to_t_array = []
+            for i in range(1,t):
+                alpha_t = 1-beta[i]
+                alpha_1_to_t_array.append(alpha_t)
+            alpha_t_bar = torch.prod(torch.Tensor(alpha_1_to_t_array))
 
-            denoised_images = model(image=noisy_images)
-
-            loss = loss_function(denoised_images, clean_images)
+            noisy_image = torch.sqrt(alpha_t_bar) * x0 + torch.sqrt(1-alpha_t_bar) * epsilon
+            epsilon_pred = model(noisy_image=noisy_image, t=t)
+            loss = loss_function(epsilon, epsilon_pred)  # todo: why don't we minimize the diff between epsilon_pred and sqrt(1-alpha_t)*epsilon?
 
             loss.backward()
-
             optimizer.step()
-
             running_loss += loss.item()
 
         last_loss = running_loss/len(training_loader)
@@ -118,6 +120,6 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device):
     torch.save(model, model_name)
     print('saved model to:', model_name)
 
-def loss_function_mse(model_out, target):
-    loss = F.mse_loss(model_out, target, reduction='none')
+def loss_function_mse(epsilon, epsilon_pred):
+    loss = F.mse_loss(epsilon, epsilon_pred, reduction='none')
     return loss.mean()
