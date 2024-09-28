@@ -6,9 +6,10 @@ batch_size = 1
 epochs_num = 10
 c_latent = 3
 T=1000
+time_embed_dim = 256
 device = 'cuda'
 
-model = UNet(n_channels=c_latent)
+model = UNet(n_channels=c_latent, time_embed_dim=time_embed_dim)
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0)
 

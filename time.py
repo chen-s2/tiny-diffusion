@@ -4,15 +4,27 @@ from torch import nn
 import math
 
 class Time(nn.Module):
-    def __init__(self, time_emb_dim, out_chan):
+    def __init__(self, time_emb_dim, out_chan, hid_channels):
         super().__init__()
         self.fc_time = nn.Linear(time_emb_dim, out_chan)
 
     def forward(self, t_emb):
         return self.fc_time(nn.relu(t_emb))[:, :, None, None]
 
+class TimeLinearEmbedder(nn.Module):
+    def __init__(self, hid_channels, time_emb_dim):
+        super().__init__()
+        self.embedder = nn.Sequential(
+            nn.Linear(hid_channels, time_emb_dim),
+            nn.ReLU(),
+            nn.Linear(time_emb_dim, time_emb_dim)
+        )
+
+    def forward(self, t_emb):
+        self.embedder(t_emb)
+
 # TODO: rebuild yourself
-def REFERENCE_get_timestep_embedding(timesteps, embed_dim: int, dtype: torch.dtype = DEFAULT_DTYPE):
+def REF_get_timestep_embedding(timesteps, embed_dim, dtype):
     """
     Adapted from fairseq/fairseq/modules/sinusoidal_positional_embedding.py
     The implementation is slightly different from the decription in Section 3.5 of [1]
@@ -29,24 +41,5 @@ def REFERENCE_get_timestep_embedding(timesteps, embed_dim: int, dtype: torch.dty
     assert embed.dtype == dtype
     return embed
 
-def get_timestep_embedding(timesteps, embed_dim, dtype):
-    pass
 
-# beginning :
-self.embed = Sequential(
-    Linear(self.hid_channels, self.time_embedding_dim),
-    self.nonlinearity,
-    Linear(self.time_embedding_dim, self.time_embedding_dim)
-)
 
-t_emb = get_timestep_embedding(t, self.hid_channels)
-t_emb = self.embed(t_emb)
-
-# residual block:
-def forward(self, x, t_emb):
-    skip = self.skip(x)
-    x = self.conv1(self.nonlinearity(self.norm1(x)))
-    x += self.fc(self.nonlinearity(t_emb))[:, :, None, None]
-    x = self.dropout(self.nonlinearity(self.norm2(x)))
-    x = self.conv2(x)
-    return x + skip

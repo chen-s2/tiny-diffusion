@@ -6,6 +6,7 @@ from time import Time
 from torch.nn import functional as F
 from attention import SelfAttention, CrossAttention
 from dataset import create_dataloader
+from time import *
 
 class Conv2dDouble(nn.Module):
     def __init__(self, in_chan, out_chan, mid_chan=None):
@@ -16,7 +17,7 @@ class Conv2dDouble(nn.Module):
             nn.Conv2d(in_chan, mid_chan, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(mid_chan),
             nn.ReLU())
-        self.time = Time()
+        self.time_fc = Time()
         self.conv2 = nn.Sequential(
             nn.Conv2d(mid_chan, out_chan, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_chan),
@@ -24,7 +25,7 @@ class Conv2dDouble(nn.Module):
 
     def forward(self, x, t_emb):
         x = self.conv1(x)
-        x = self.conv2(x + self.time(t_emb))
+        x = self.conv2(x + self.time_fc(t_emb))
         return x
 
 class DownModule(nn.Module):
@@ -51,7 +52,7 @@ class UpModule(nn.Module):
         return output
 
 class UNet(nn.Module):
-    def __init__(self, n_channels):
+    def __init__(self, n_channels, time_emb_dim):
         super().__init__()
         self.inc = Conv2dDouble(n_channels, 64)
 
@@ -67,7 +68,13 @@ class UNet(nn.Module):
 
         self.out = Conv2dDouble(64, n_channels)
 
-    def forward(self, image, t_emb):
+        self.time_linear_embedder = TimeLinearEmbedder(64, time_emb_dim)
+        self.time_emb_dim = time_emb_dim
+
+    def forward(self, image, t):
+        t_emb = REF_get_timestep_embedding(timesteps=[t], embed_dim=self.time_emb_dim, dtype=torch.float32)
+        t_emb = self.time_linear_embedder(t_emb)
+
         x1 = self.inc(image, t_emb)
         x2 = self.down1(x1, t_emb)
         x3 = self.down2(x2, t_emb)
@@ -105,6 +112,7 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
             alpha_t_bar = torch.prod(torch.Tensor(alpha_1_to_t_array))
 
             noisy_image = torch.sqrt(alpha_t_bar) * x0 + torch.sqrt(1-alpha_t_bar) * epsilon
+
             epsilon_pred = model(noisy_image=noisy_image, t=t)
             loss = loss_function(epsilon, epsilon_pred)  # todo: why don't we minimize the diff between epsilon_pred and sqrt(1-alpha_t)*epsilon?
 
