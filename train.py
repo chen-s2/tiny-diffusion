@@ -2,14 +2,14 @@ from unet import *
 
 data_path = "../dit/data/train"
 image_size = 32
-batch_size = 1
+batch_size = 16
 epochs_num = 10
 c_latent = 3
-T=1000
-time_embed_dim = 256
+T = 1000
+time_emb_dim = 32
 device = 'cuda'
 
-model = UNet(n_channels=c_latent, time_embed_dim=time_embed_dim)
+model = UNet(n_channels=c_latent, time_emb_dim_param=time_emb_dim, device=device)
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0)
 
