@@ -1,12 +1,12 @@
 from unet import *
 
 data_path = "../dit/data/train"
-image_size = 32
-batch_size = 16
+image_size = 48
+batch_size = 32
 epochs_num = 10
 c_latent = 3
-T = 1000
-time_emb_dim = 32
+T = 50
+time_emb_dim = image_size
 device = 'cuda'
 
 model = UNet(n_channels=c_latent, time_emb_dim_param=time_emb_dim, device=device)
