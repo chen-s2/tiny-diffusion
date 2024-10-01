@@ -98,6 +98,13 @@ class UNet(nn.Module):
         x = self.out(x, t_emb)
         return x
 
+def show_image(img, title):
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.imshow(img.detach().cpu().numpy())
+    plt.title(title)
+    plt.show()
+
 def train(model, optimizer, loss_function, training_loader, epochs_num, device, T):
     running_loss = 0.
     last_loss = 0.
@@ -117,7 +124,7 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
             t = int(torch.randint(1, T, (1,), dtype=x0.dtype, device=device))
 
             alpha_1_to_t_array = []
-            for i in range(1,t):
+            for i in range(1,t+1):
                 alpha_t = 1-beta[i]
                 alpha_1_to_t_array.append(alpha_t)
             alpha_t_bar = torch.prod(torch.Tensor(alpha_1_to_t_array))
@@ -125,6 +132,10 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
             noisy_image = torch.sqrt(alpha_t_bar) * x0 + torch.sqrt(1-alpha_t_bar) * epsilon
 
             epsilon_pred = model(image=noisy_image, t=t)
+
+            # show_image(epsilon, "epsilon")
+            # show_image(epsilon_pred, "epsilon_pred")
+            #
             loss = loss_function(epsilon, epsilon_pred)  # todo: why don't we minimize the diff between epsilon_pred and sqrt(1-alpha_t)*epsilon?
 
             loss.backward()
