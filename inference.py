@@ -2,21 +2,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 from utils import *
 from unet import *
-
 import torch
-from torch import nn
 from tqdm import tqdm
-from torch.nn import functional as F
-from attention import SelfAttention, CrossAttention
-from dataset import create_dataloader
 
-# model_path = './models/model_0.2711.pth'
-# model_path = './models/model_0.5413.pth'
-# model_path = './models/model_0.6079.pth'
-# model_path = './models/model_0.5655.pth'
-# model_path = './models/model_0.5509.pth'
 model_path = './models/model_0.5343.pth'
-T = 1000
+T = 200
 image_size = 48
 
 model = torch.load(model_path)
@@ -27,7 +17,7 @@ beta = np.linspace(1e-4, 0.02, num=T)
 beta = np.concatenate(([0.0],beta)) # for indexing between [1,T] instead of [0,T-1]
 beta = torch.Tensor(beta)
 
-num_images_generated = 5
+num_images_generated = 2
 fig, axes = plt.subplots(1, num_images_generated, figsize=(16, 3))
 
 for img_index in range(num_images_generated):
@@ -45,7 +35,17 @@ for img_index in range(num_images_generated):
             alpha_1_to_t_array.append(alpha_t)
         alpha_t_bar = torch.prod(torch.Tensor(alpha_1_to_t_array))
 
-        x_t_minus_1 = (1/torch.sqrt(alpha_t)) * (x_t - ((1-alpha_t) / (1-torch.sqrt(alpha_t_bar))) * model(x_t, t)) + sigma_t * z
+        # x_t_minus_1 = (1/torch.sqrt(alpha_t)) * (x_t - ((1 - alpha_t) / torch.sqrt(1-alpha_t_bar)) * model(x_t, t)) + sigma_t * z
+        x_t_minus_1 = x_t - ((1 - alpha_t) / (1 - torch.sqrt(alpha_t_bar))) * model(x_t, t) + sigma_t * z # works but the denominator is incorrect according to algo 2
+        # x_t_minus_1 = 0.2 * (x_t - ((1 - alpha_t) / torch.sqrt(1-alpha_t_bar)) * model(x_t, t)) # + 0.1 * sigma_t * z
+
+        if t%20 == 0:
+            print("t:", t, ", mean/std:", torch.mean(x_t_minus_1), torch.std(x_t_minus_1))
+        #     print("\nt:", t)
+        #     print("eps_pred coeffcient:", ((1-alpha_t) / (1-torch.sqrt(alpha_t_bar))))
+        #     print("z coeffcient:", sigma_t)
+        #     print("denoised_image coefficent:", (1/torch.sqrt(alpha_t)))
+
         x_t = x_t_minus_1
 
     generated_image = x_t_minus_1
