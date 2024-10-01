@@ -122,6 +122,7 @@ def show_diffusion_chain(clean_image, epsilon, T):
     beta = np.linspace(1e-4, 0.02, num=T)
     timesteps = np.linspace(T-1, 1, num=num_noise_levels).astype('int')
     device = clean_image.device
+    print("image shape:", clean_image.shape, ", epsilon shape:", epsilon.shape)
 
     fig, axes = plt.subplots(2, num_noise_levels//2, figsize=(16, 3))
 

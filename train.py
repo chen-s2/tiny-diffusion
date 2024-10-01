@@ -4,9 +4,9 @@ data_path = "../dit/data/train"
 image_size = 48
 batch_size = 32
 epochs_num = 20
-c_latent = 3
-T = 200
-load_model_path = './models/model_0.5655.pth'
+c_latent = 1
+T = 1000
+load_model_path = None # './models/model_0.5655.pth'
 time_emb_dim = image_size
 device = 'cuda'
 

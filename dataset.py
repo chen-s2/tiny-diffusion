@@ -11,7 +11,8 @@ def create_dataloader(data_path, image_size, batch_size):
         transforms.Resize((image_size, image_size)),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5], inplace=True)
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5], inplace=True),
+        transforms.Grayscale()
     ])
 
     dataset = ImageFolder(data_path, transform=transform)
