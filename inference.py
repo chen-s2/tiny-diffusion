@@ -12,9 +12,11 @@ from dataset import create_dataloader
 
 # model_path = './models/model_0.2711.pth'
 # model_path = './models/model_0.5413.pth'
-model_path = './models/model_0.6079.pth'
-T = 50
-image_size=48
+# model_path = './models/model_0.6079.pth'
+# model_path = './models/model_0.5655.pth'
+model_path = './models/model_0.5509.pth'
+T = 200
+image_size = 48
 
 model = torch.load(model_path)
 device = 'cuda'
@@ -24,7 +26,10 @@ beta = np.linspace(1e-4, 0.02, num=T)
 beta = np.concatenate(([0.0],beta)) # for indexing between [1,T] instead of [0,T-1]
 beta = torch.Tensor(beta)
 
-for _ in range(5):
+num_images_generated = 5
+fig, axes = plt.subplots(1, num_images_generated, figsize=(16, 3))
+
+for img_index in range(num_images_generated):
     x_t = torch.randn(torch.Size([1, 3, image_size, image_size]), dtype=torch.float32, device=device)
 
     for t in tqdm(timesteps):
@@ -58,9 +63,10 @@ for _ in range(5):
     print("generated_image min/max:", np.min(generated_image), np.max(generated_image))
     print("generated_image shape:", generated_image.shape)
 
-    plt.figure()
-    plt.imshow(generated_image)
-    plt.show(block=False)
+    axes[img_index].imshow(b, cmap='gray')
+    axes[img_index].axis('off')
+    # plt.show(block=False)
 
+plt.tight_layout()
 plt.show()
 print("done")

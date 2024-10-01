@@ -1,9 +1,13 @@
+import math
+
 import numpy as np
 import torch
+from matplotlib import pyplot as plt
 from torch import nn
 from tqdm import tqdm
 from time_embed import Time, TimeLinearEmbedder, REF_get_timestep_embedding
 from torch.nn import functional as F
+import matplotlib.pyplot as plt
 from attention import SelfAttention, CrossAttention
 from dataset import create_dataloader
 
@@ -98,11 +102,45 @@ class UNet(nn.Module):
         x = self.out(x, t_emb)
         return x
 
-def show_image(img, title):
-    import matplotlib.pyplot as plt
+def show_image(img, title, block=False):
+    get_tensor_stats(img, title)
     plt.figure()
-    plt.imshow(img.detach().cpu().numpy())
+    plt.imshow(img[0,0,:,:].detach().cpu().numpy())
     plt.title(title)
+    plt.show(block=block)
+
+def get_tensor_stats(tensor, title):
+    print("tensor:", title)
+    print("mean/std:", torch.mean(tensor), ",", torch.std(tensor))
+    print("min/max:", torch.min(tensor), torch.max(tensor))
+
+def dt(tensor):
+    return tensor.detach().cpu().numpy()
+
+def show_diffusion_chain(clean_image, epsilon, T):
+    num_noise_levels = 20
+    beta = np.linspace(1e-4, 0.02, num=T)
+    timesteps = np.linspace(T-1, 1, num=num_noise_levels).astype('int')
+    device = clean_image.device
+
+    fig, axes = plt.subplots(2, num_noise_levels//2, figsize=(16, 3))
+
+    for noise_index, t in enumerate(timesteps):
+        alpha_1_to_t_array = []
+        for i in range(1, t + 1):
+            alpha_t = 1 - beta[i]
+            alpha_1_to_t_array.append(alpha_t)
+        alpha_t_bar = torch.prod(torch.Tensor(alpha_1_to_t_array))
+
+        noisy_image = torch.sqrt(alpha_t_bar) * clean_image + torch.sqrt(1 - alpha_t_bar) * epsilon
+
+        noisy_image_transpose = np.transpose(dt(noisy_image), (1, 2, 0))
+        noisy_image_transpose = torch.Tensor(noisy_image_transpose).to(device)
+
+        axes[math.floor(noise_index/10.0), noise_index%10].imshow(dt(noisy_image_transpose), cmap='gray')
+        axes[math.floor(noise_index/10.0), noise_index%10].axis('off')
+
+    plt.tight_layout()
     plt.show()
 
 def train(model, optimizer, loss_function, training_loader, epochs_num, device, T):
@@ -131,11 +169,10 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
 
             noisy_image = torch.sqrt(alpha_t_bar) * x0 + torch.sqrt(1-alpha_t_bar) * epsilon
 
+            # show_diffusion_chain(clean_image=x0[0], epsilon=epsilon[0], T=T)
+
             epsilon_pred = model(image=noisy_image, t=t)
 
-            # show_image(epsilon, "epsilon")
-            # show_image(epsilon_pred, "epsilon_pred")
-            #
             loss = loss_function(epsilon, epsilon_pred)  # todo: why don't we minimize the diff between epsilon_pred and sqrt(1-alpha_t)*epsilon?
 
             loss.backward()
