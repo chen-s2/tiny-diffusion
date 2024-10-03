@@ -7,20 +7,23 @@ from tqdm import tqdm
 
 # model_path = './models/model_0.5343.pth'
 # model_path = './models/model_cifar10_0.5416.pth'
-model_path = './models/model_cifar10_0.1174.pth'
+# model_path = './models/model_cifar10_0.1174.pth'
+model_path = './models/model_butterfly_0.0958.pth'
 T = 1000
-# image_size = 48
-image_size = 32
+# num_intervals = 100
+num_intervals = T
+image_size = 48
+# image_size = 32
 
 model = torch.load(model_path)
 device = 'cuda'
 
-timesteps = np.linspace(start=T,stop=1, num=T).astype('int')
+timesteps = np.linspace(start=T,stop=1, num=num_intervals).astype('int')
 beta = np.linspace(1e-4, 0.02, num=T)
 beta = np.concatenate(([0.0],beta)) # for indexing between [1,T] instead of [0,T-1]
 beta = torch.Tensor(beta)
 
-num_images_generated = 2
+num_images_generated = 1
 fig, axes = plt.subplots(1, num_images_generated, figsize=(16, 3))
 
 for img_index in range(num_images_generated):
@@ -51,15 +54,20 @@ for img_index in range(num_images_generated):
     generated_image = generated_image.detach().cpu().numpy()
 
     min_img, max_img = np.min(generated_image), np.max(generated_image)
-    generated_image = 255.0*(generated_image/(max_img-min_img))
-
-    gray = generated_image.astype('uint8').squeeze()
-
-    generated_image = generated_image.astype('uint8').squeeze()
+    generated_image = 255.0*((generated_image-min_img)/(max_img-min_img))
     show_stats_np_tensor(generated_image, "generated_image")
 
-    axes[img_index].imshow(gray, cmap='gray')
-    axes[img_index].axis('off')
+    gray = generated_image.astype('uint8').squeeze()
+    show_stats_np_tensor(generated_image, "generated_image")
+
+    generated_image = generated_image.astype('uint8').squeeze()
+
+
+    if num_images_generated != 1:
+        axes[img_index].imshow(gray, cmap='gray')
+        axes[img_index].axis('off')
+    else:
+        plt.imshow(gray, cmap='gray')
 
 plt.tight_layout()
 plt.show()
