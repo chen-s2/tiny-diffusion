@@ -1,5 +1,4 @@
 import math
-
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
@@ -9,6 +8,7 @@ from time_embed import Time, TimeLinearEmbedder, REF_get_timestep_embedding
 from torch.nn import functional as F
 import matplotlib.pyplot as plt
 from attention import SelfAttention, CrossAttention
+from utils import *
 
 time_emb_dim = None
 
@@ -17,24 +17,30 @@ class Conv2dDouble(nn.Module):
         super().__init__()
         if not mid_chan:
             mid_chan = out_chan
+
         self.conv1 = nn.Sequential(
-            nn.Conv2d(in_chan, mid_chan, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(mid_chan),
-            nn.ReLU())
+            nn.BatchNorm2d(in_chan),
+            nn.ReLU(),
+            nn.Conv2d(in_chan, mid_chan, kernel_size=3, padding=1, bias=False))
+
         self.time_fc = Time(time_emb_dim, mid_chan)
+
         self.conv2 = nn.Sequential(
-            nn.Conv2d(mid_chan, out_chan, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(out_chan),
-            nn.ReLU())
+            nn.BatchNorm2d(mid_chan),
+            nn.ReLU(),
+            nn.Conv2d(mid_chan, out_chan, kernel_size=3, padding=1, bias=False))
+
         self.in_chan = in_chan
         self.mid_chan = mid_chan
         self.out_chan = out_chan
 
     def forward(self, x, t_emb):
         x = self.conv1(x)
+
         t_emb_lin = self.time_fc(t_emb)
         t_emb_lin = t_emb_lin.unsqueeze(0).unsqueeze(0).expand(x.shape[0], x.shape[1], -1, -1)
         t_emb_lin = F.interpolate(t_emb_lin, size=(x.shape[2:4]), mode='bilinear', align_corners=False)
+
         x = self.conv2(x + t_emb_lin)
         return x
 
@@ -43,23 +49,33 @@ class DownModule(nn.Module):
         super().__init__()
         self.maxpool = nn.MaxPool2d(2)
         self.conv_double = Conv2dDouble(in_chan, out_chan)
+        self.skip = nn.Identity() if in_chan == out_chan else nn.Conv2d(in_chan, out_chan, 1)
 
     def forward(self, x, t_emb):
-        y = self.maxpool(x)
-        y = self.conv_double(y, t_emb)
-        return y
+        x = self.maxpool(x)
+        skip = self.skip(x)
+        x = self.conv_double(x, t_emb)
+        return x + skip
 
 class UpModule(nn.Module):
     def __init__(self,in_chan, mid_chan, out_chan):
         super().__init__()
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
         self.conv_double = Conv2dDouble(in_chan, out_chan, mid_chan)
+        self.skip = nn.Identity() if mid_chan == out_chan else nn.Conv2d(mid_chan, out_chan, 1)
 
-    def forward(self, input, residual, t_emb):
-        input = self.upsample(input)
-        output = torch.cat([residual,input], dim=1)
-        output = self.conv_double(output, t_emb)
-        return output
+    def forward(self, x, horziontal_residual, t_emb):
+        # horziontal_residual is passed from a parallel downsampling layer to this upsampling layer
+        x = self.upsample(x)
+
+        skip = self.skip(x)
+
+        x = torch.cat([horziontal_residual,x], dim=1)
+
+        x = self.conv_double(x, t_emb)
+
+        return x + skip
+        # return x
 
 class UNet(nn.Module):
     def __init__(self, n_channels, time_emb_dim_param, device):

@@ -6,7 +6,7 @@ from torchvision.datasets import ImageFolder
 from torchvision.datasets import CIFAR10
 from torchvision import transforms
 
-def create_dataloader(data_path, image_size, batch_size):
+def create_dataloader(data_path, image_size, batch_size, dataset_name):
     transform = transforms.Compose([
         # transforms.Lambda(lambda pil_image: center_crop_arr(pil_image, args.image_size)),
         transforms.Resize((image_size, image_size)),
@@ -28,6 +28,7 @@ def create_dataloader(data_path, image_size, batch_size):
     )
     print(f"Dataset contains {len(dataset):,} images ({data_path})")
 
+    loader.dataset_name = dataset_name
     return loader
 
 def create_dataloader_cifar(image_size, batch_size, train_or_test='train'):
