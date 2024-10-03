@@ -2,7 +2,7 @@ from unet import *
 from dataset import *
 
 if __name__ == "__main__":
-    image_size = 48
+    image_size = 32
     batch_size = 64
     epochs_num = 10
     c_latent = 1
