@@ -9,7 +9,6 @@ from time_embed import Time, TimeLinearEmbedder, REF_get_timestep_embedding
 from torch.nn import functional as F
 import matplotlib.pyplot as plt
 from attention import SelfAttention, CrossAttention
-from dataset import create_dataloader
 
 time_emb_dim = None
 
@@ -85,6 +84,8 @@ class UNet(nn.Module):
         self.time_emb_dim = time_emb_dim
 
         self.device = device
+        total_params = sum(p.numel() for p in self.parameters())
+        print("model's total params:", total_params)
 
     def forward(self, image, t):
         t_emb = REF_get_timestep_embedding(timesteps=[t], embed_dim=self.time_emb_dim, dtype=torch.float32, device=self.device)
@@ -101,21 +102,6 @@ class UNet(nn.Module):
         x = self.up4(x, x1, t_emb)
         x = self.out(x, t_emb)
         return x
-
-def show_image(img, title, block=False):
-    get_tensor_stats(img, title)
-    plt.figure()
-    plt.imshow(img[0,0,:,:].detach().cpu().numpy())
-    plt.title(title)
-    plt.show(block=block)
-
-def get_tensor_stats(tensor, title):
-    print("tensor:", title)
-    print("mean/std:", torch.mean(tensor), ",", torch.std(tensor))
-    print("min/max:", torch.min(tensor), torch.max(tensor))
-
-def dt(tensor):
-    return tensor.detach().cpu().numpy()
 
 def show_diffusion_chain(clean_image, epsilon, T):
     num_noise_levels = 20
@@ -152,6 +138,8 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
     model.to(device)
     model.train()
 
+    dataset_name = training_loader.dataset_name
+
     for epoch in range(epochs_num):
         print("epoch:", epoch)
         for i, data in tqdm(enumerate(training_loader)):
@@ -171,6 +159,7 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
             noisy_image = torch.sqrt(alpha_t_bar) * x0 + torch.sqrt(1-alpha_t_bar) * epsilon
 
             # show_diffusion_chain(clean_image=x0[0], epsilon=epsilon[0], T=T)
+            # quit()
 
             epsilon_pred = model(image=noisy_image, t=t)
 
@@ -184,10 +173,11 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
         print("loss:", last_loss)
         running_loss = 0
 
-    model_name = './models/model_' + str(round(last_loss,4)) + '.pth'
+    model_name = './models/model_' + dataset_name + "_" + str(round(last_loss,4)) + '.pth'
     torch.save(model, model_name)
     print('saved model to:', model_name)
 
 def loss_function_mse(epsilon, epsilon_pred):
     loss = F.mse_loss(epsilon, epsilon_pred, reduction='none')
     return loss.mean()
+

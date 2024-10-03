@@ -1,26 +1,28 @@
 from unet import *
+from dataset import *
 
-data_path = "../dit/data/train"
-image_size = 48
-batch_size = 32
-epochs_num = 20
-c_latent = 1
-T = 1000
-load_model_path = None # './models/model_0.5655.pth'
-time_emb_dim = image_size
-device = 'cuda'
+if __name__ == "__main__":
+    butterfly_data_path = "../dit/data/train"
+    image_size = 32
+    batch_size = 64
+    epochs_num = 10
+    c_latent = 1
+    T = 1000
+    load_model_path = None # './models/model_0.5655.pth'
+    time_emb_dim = image_size
+    device = 'cuda'
 
+    if load_model_path:
+        model = torch.load(load_model_path)
+        print("loading model:", load_model_path)
+    else:
+        model = UNet(n_channels=c_latent, time_emb_dim_param=time_emb_dim, device=device)
 
-if load_model_path:
-    model = torch.load(load_model_path)
-    print("loading model:", load_model_path)
-else:
-    model = UNet(n_channels=c_latent, time_emb_dim_param=time_emb_dim, device=device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0)
 
-optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0)
+    # training_loader = create_dataloader(butterfly_data_path, image_size, batch_size)
+    training_loader = create_dataloader_cifar(image_size, batch_size)
 
-training_loader = create_dataloader(data_path, image_size, batch_size)
+    train(model=model, optimizer=optimizer, loss_function=loss_function_mse, training_loader=training_loader, epochs_num=epochs_num, device=device, T=T)
 
-train(model=model, optimizer=optimizer, loss_function=loss_function_mse, training_loader=training_loader, epochs_num=epochs_num, device=device, T=T)
-
-print("done")
+    print("done")
