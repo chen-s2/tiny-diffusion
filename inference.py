@@ -5,10 +5,6 @@ from unet import *
 import torch
 from tqdm import tqdm
 
-# model_path = './models/model_0.5343.pth'
-# model_path = './models/model_cifar10_0.5416.pth'
-# model_path = './models/model_cifar10_0.1174.pth'
-# model_path = './models/model_butterfly_0.0958.pth'
 model_path = get_last_created_model()
 print("using model:", model_path)
 
@@ -26,7 +22,7 @@ beta = np.linspace(1e-4, 0.02, num=T)
 beta = np.concatenate(([0.0],beta)) # for indexing between [1,T] instead of [0,T-1]
 beta = torch.Tensor(beta)
 
-num_images_generated = 1
+num_images_generated = 5
 fig, axes = plt.subplots(1, num_images_generated, figsize=(16, 3))
 
 for img_index in range(num_images_generated):

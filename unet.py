@@ -14,7 +14,7 @@ time_emb_dim = None
 
 class Conv2dDouble(nn.Module):
     def __init__(self, in_chan, out_chan, mid_chan=None):
-        super(Conv2dDouble, self).__init__()
+        super().__init__()
         if not mid_chan:
             mid_chan = out_chan
 
@@ -45,6 +45,21 @@ class Conv2dDouble(nn.Module):
         # x = self.drop(x)
 
         x = self.conv2(x)
+        return x
+
+class OutLayer(nn.Module):
+    def __init__(self, in_chan, out_chan):
+        super().__init__()
+
+        self.conv = nn.Sequential(
+            nn.BatchNorm2d(in_chan),
+            nn.ReLU(),
+            nn.Conv2d(in_chan, out_chan, kernel_size=3, padding=1, bias=False))
+
+        self.in_chan = in_chan
+        self.out_chan = out_chan
+    def forward(self, x):
+        x = self.conv(x)
         return x
 
 class DownModule(nn.Module):
@@ -112,7 +127,7 @@ class UNet(nn.Module):
         self.up3 = UpModule(256, 128, 64)
         self.up4 = UpModule(128, 64, 64)
 
-        self.out = Conv2dDouble(64, n_channels)
+        self.out = OutLayer(64, n_channels)
 
         self.time_linear_embedder = TimeLinearEmbedder(1, time_emb_dim)
         self.time_emb_dim = time_emb_dim
@@ -137,5 +152,6 @@ class UNet(nn.Module):
         x = self.up2(x, x3, t_emb)
         x = self.up3(x, x2, t_emb)
         x = self.up4(x, x1, t_emb)
-        x = self.out(x, t_emb)
+        x = self.out(x)
+
         return x

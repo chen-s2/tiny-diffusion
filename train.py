@@ -5,10 +5,10 @@ from training import train, loss_function_mse
 if __name__ == "__main__":
     image_size = 48
     batch_size = 64
-    epochs_num = 10
+    epochs_num = 20
     c_latent = 1
     T = 1000
-    load_model_path = get_last_created_model()
+    load_model_path = None # get_last_created_model()
     time_emb_dim = image_size
     device = 'cuda'
 
