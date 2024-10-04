@@ -1,5 +1,6 @@
 from unet import *
 from dataset import *
+from training import train, loss_function_mse
 
 if __name__ == "__main__":
     image_size = 48
