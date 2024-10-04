@@ -9,6 +9,7 @@ if __name__ == "__main__":
     c_latent = 1
     T = 1000
     load_model_path = None # get_last_created_model()
+    apply_attn = [False, False, True, False]
     time_emb_dim = image_size
     device = 'cuda'
 
@@ -16,7 +17,7 @@ if __name__ == "__main__":
         model = torch.load(load_model_path)
         print("loading model:", load_model_path)
     else:
-        model = UNet(n_channels=c_latent, time_emb_dim_param=time_emb_dim, device=device)
+        model = UNet(n_channels=c_latent, time_emb_dim_param=time_emb_dim, device=device, apply_attn=apply_attn)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=5e-4, weight_decay=1e-2)
 
