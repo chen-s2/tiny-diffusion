@@ -9,7 +9,6 @@ model_path = get_last_created_model()
 print("using model:", model_path)
 
 T = 1000
-# num_intervals = 100
 num_intervals = T
 image_size = 48
 # image_size = 32
@@ -22,7 +21,7 @@ beta = np.linspace(1e-4, 0.02, num=T)
 beta = np.concatenate(([0.0],beta)) # for indexing between [1,T] instead of [0,T-1]
 beta = torch.Tensor(beta)
 
-num_images_generated = 5
+num_images_generated = 8
 fig, axes = plt.subplots(1, num_images_generated, figsize=(16, 3))
 
 for img_index in range(num_images_generated):
@@ -40,9 +39,9 @@ for img_index in range(num_images_generated):
             alpha_1_to_t_array.append(alpha_t)
         alpha_t_bar = torch.prod(torch.Tensor(alpha_1_to_t_array))
 
-        # x_t_minus_1 = (1/torch.sqrt(alpha_t)) * (x_t - ((1 - alpha_t) / torch.sqrt(1-alpha_t_bar)) * model(x_t, t)) + sigma_t * z
+        x_t_minus_1 = (1/torch.sqrt(alpha_t)) * (x_t - ((1 - alpha_t) / torch.sqrt(1-alpha_t_bar)) * model(x_t, t)) + sigma_t * z
         # x_t_minus_1 = x_t - ((1 - alpha_t) / (1 - torch.sqrt(alpha_t_bar))) * model(x_t, t)  #+ 0.05 * sigma_t * z # works but the denominator is incorrect according to algo 2
-        x_t_minus_1 = x_t - ((1 - alpha_t) / (1 - torch.sqrt(alpha_t_bar))) * model(x_t, t) + sigma_t * z
+        # x_t_minus_1 = x_t - ((1 - alpha_t) / (1 - torch.sqrt(alpha_t_bar))) * model(x_t, t) + sigma_t * z
         # x_t_minus_1 = 0.2 * (x_t - ((1 - alpha_t) / torch.sqrt(1-alpha_t_bar)) * model(x_t, t)) # + 0.1 * sigma_t * z
 
         if t%100 == 0:
