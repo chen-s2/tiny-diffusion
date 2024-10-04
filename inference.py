@@ -8,7 +8,10 @@ from tqdm import tqdm
 # model_path = './models/model_0.5343.pth'
 # model_path = './models/model_cifar10_0.5416.pth'
 # model_path = './models/model_cifar10_0.1174.pth'
-model_path = './models/model_butterfly_0.0958.pth'
+# model_path = './models/model_butterfly_0.0958.pth'
+model_path = get_last_created_model()
+print("using model:", model_path)
+
 T = 1000
 # num_intervals = 100
 num_intervals = T
@@ -41,8 +44,9 @@ for img_index in range(num_images_generated):
             alpha_1_to_t_array.append(alpha_t)
         alpha_t_bar = torch.prod(torch.Tensor(alpha_1_to_t_array))
 
-        x_t_minus_1 = (1/torch.sqrt(alpha_t)) * (x_t - ((1 - alpha_t) / torch.sqrt(1-alpha_t_bar)) * model(x_t, t)) + sigma_t * z
+        # x_t_minus_1 = (1/torch.sqrt(alpha_t)) * (x_t - ((1 - alpha_t) / torch.sqrt(1-alpha_t_bar)) * model(x_t, t)) + sigma_t * z
         # x_t_minus_1 = x_t - ((1 - alpha_t) / (1 - torch.sqrt(alpha_t_bar))) * model(x_t, t)  #+ 0.05 * sigma_t * z # works but the denominator is incorrect according to algo 2
+        x_t_minus_1 = x_t - ((1 - alpha_t) / (1 - torch.sqrt(alpha_t_bar))) * model(x_t, t) + sigma_t * z
         # x_t_minus_1 = 0.2 * (x_t - ((1 - alpha_t) / torch.sqrt(1-alpha_t_bar)) * model(x_t, t)) # + 0.1 * sigma_t * z
 
         if t%100 == 0:

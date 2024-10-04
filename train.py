@@ -8,7 +8,7 @@ if __name__ == "__main__":
     epochs_num = 10
     c_latent = 1
     T = 1000
-    load_model_path = './models/model_butterfly_0.0958.pth'
+    load_model_path = get_last_created_model()
     time_emb_dim = image_size
     device = 'cuda'
 

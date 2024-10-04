@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
+import os
 
 def show_stats_np_tensor(np_tensor, title):
     print(title, "mean/std:", np.mean(np_tensor), np.std(np_tensor))
@@ -21,3 +22,9 @@ def get_tensor_stats(tensor, title):
 
 def dt(tensor):
     return tensor.detach().cpu().numpy()
+
+def get_last_created_model():
+    directory = './models'
+    files = [os.path.join(directory, f) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    sorted_files = sorted(files, key=os.path.getmtime, reverse=True)
+    return sorted_files[0]

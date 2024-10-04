@@ -77,6 +77,19 @@ class UpModule(nn.Module):
         return x + skip
         # return x
 
+class MiddleModule(nn.Module):
+    def __init__(self, in_chan, out_chan):
+        super().__init__()
+        self.conv_double_1 = Conv2dDouble(in_chan, out_chan)
+        self.conv_double_2 = Conv2dDouble(in_chan, out_chan)
+        self.skip = nn.Identity() if in_chan == out_chan else nn.Conv2d(in_chan, out_chan, 1)
+
+    def forward(self, x, t_emb):
+        skip = self.skip(x)
+        x = self.conv_double_1(x, t_emb)
+        x = self.conv_double_2(x, t_emb)
+        return x + skip
+
 class UNet(nn.Module):
     def __init__(self, n_channels, time_emb_dim_param, device):
         super().__init__()
@@ -88,6 +101,8 @@ class UNet(nn.Module):
         self.down2 = DownModule(128, 256)
         self.down3 = DownModule(256, 512)
         self.down4 = DownModule(512, 512)
+
+        self.middle = MiddleModule(512, 512)
 
         self.up1 = UpModule(1024, 512, 256)
         self.up2 = UpModule(512, 256, 128) # in_chan of curr layer != out_chan of previous layer, since in the upstream layers we *concatenate the input tensor with a residual from the parallel downstream layer*
@@ -112,7 +127,10 @@ class UNet(nn.Module):
         x3 = self.down2(x2, t_emb)
         x4 = self.down3(x3, t_emb)
         x5 = self.down4(x4, t_emb)
-        x = self.up1(x5, x4, t_emb)
+
+        xm = self.middle(x5, t_emb)
+
+        x = self.up1(xm, x4, t_emb)
         x = self.up2(x, x3, t_emb)
         x = self.up3(x, x2, t_emb)
         x = self.up4(x, x1, t_emb)
