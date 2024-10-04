@@ -13,8 +13,8 @@ from utils import *
 time_emb_dim = None
 
 class Conv2dDouble(nn.Module):
-    def __init__(self, in_chan, out_chan, mid_chan=None, ):
-        super().__init__()
+    def __init__(self, in_chan, out_chan, mid_chan=None):
+        super(Conv2dDouble, self).__init__()
         if not mid_chan:
             mid_chan = out_chan
 
@@ -33,6 +33,7 @@ class Conv2dDouble(nn.Module):
         self.in_chan = in_chan
         self.mid_chan = mid_chan
         self.out_chan = out_chan
+        # self.drop = nn.Dropout(p=0.1, inplace=True)
 
     def forward(self, x, t_emb):
         x = self.conv1(x)
@@ -40,8 +41,10 @@ class Conv2dDouble(nn.Module):
         t_emb_lin = self.time_fc(t_emb)
         t_emb_lin = t_emb_lin.unsqueeze(0).unsqueeze(0).expand(x.shape[0], x.shape[1], -1, -1)
         t_emb_lin = F.interpolate(t_emb_lin, size=(x.shape[2:4]), mode='bilinear', align_corners=False)
+        x = x + t_emb_lin
+        # x = self.drop(x)
 
-        x = self.conv2(x + t_emb_lin)
+        x = self.conv2(x)
         return x
 
 class DownModule(nn.Module):

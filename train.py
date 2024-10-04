@@ -18,7 +18,7 @@ if __name__ == "__main__":
     else:
         model = UNet(n_channels=c_latent, time_emb_dim_param=time_emb_dim, device=device)
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=5e-4, weight_decay=0)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=5e-4, weight_decay=1e-2)
 
     training_loader = create_dataloader("./data/butterfly/train", image_size, batch_size, dataset_name="butterfly")
     # training_loader = create_dataloader_cifar(image_size, batch_size)
