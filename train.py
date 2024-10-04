@@ -3,7 +3,7 @@ from dataset import *
 from training import train, loss_function_mse
 
 if __name__ == "__main__":
-    image_size = 48
+    image_size = 32
     batch_size = 64
     epochs_num = 20
     c_latent = 1
@@ -22,8 +22,8 @@ if __name__ == "__main__":
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=5e-4, weight_decay=1e-2)
 
-    training_loader = create_dataloader(butterfly_path, image_size, batch_size, dataset_name="butterfly")
-    # training_loader = create_dataloader_cifar(image_size, batch_size)
+    # training_loader = create_dataloader(butterfly_path, image_size, batch_size, dataset_name="butterfly")
+    training_loader = create_dataloader_cifar(image_size, batch_size)
 
     train(model=model, optimizer=optimizer, loss_function=loss_function_mse, training_loader=training_loader, epochs_num=epochs_num, device=device, T=T)
 

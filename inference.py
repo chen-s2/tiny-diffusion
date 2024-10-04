@@ -10,8 +10,8 @@ print("using model:", model_path)
 
 T = 1000
 num_intervals = T
-image_size = 48
-# image_size = 32
+# image_size = 48
+image_size = 32
 
 model = torch.load(model_path)
 device = 'cuda'

@@ -51,6 +51,6 @@ def create_dataloader_cifar(image_size, batch_size, train_or_test='train'):
     else:
         dataloader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
 
-    print("loaded cifar data with batches #:", len(dataloader))
+    print("loaded cifar data with batches #:", len(dataloader), "and images:", len(dataloader) * batch_size)
     dataloader.dataset_name = 'cifar10'
     return dataloader
