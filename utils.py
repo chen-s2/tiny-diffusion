@@ -28,3 +28,11 @@ def get_last_created_model():
     files = [os.path.join(directory, f) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
     sorted_files = sorted(files, key=os.path.getmtime, reverse=True)
     return sorted_files[0]
+
+def rename_images_in_directory(directory, start_number=5000):
+    files = sorted([f for f in os.listdir(directory) if f.endswith('.jpg')])
+    for idx, filename in enumerate(files, start=start_number):
+        new_filename = f"Image_{idx}.jpg"
+        old_filepath = os.path.join(directory, filename)
+        new_filepath = os.path.join(directory, new_filename)
+        os.rename(old_filepath, new_filepath)
