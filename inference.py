@@ -13,8 +13,8 @@ print("using model:", model_path)
 T = 1000
 num_intervals = T
 # image_size = 48
-image_size = 32
-batch_size = 8
+image_size = 64
+batch_size = 16
 
 model = torch.load(model_path)
 device = 'cuda'
@@ -25,7 +25,7 @@ beta = np.concatenate(([0.0],beta)) # for indexing between [1,T] instead of [0,T
 beta = torch.Tensor(beta)
 
 num_images_generated = batch_size
-fig, axes = plt.subplots(1, num_images_generated, figsize=(16, 3))
+fig, axes = plt.subplots(np.ceil(batch_size/8.0).astype('int'), np.min((num_images_generated,8)), figsize=(16, 3))
 
 x_t = torch.randn(torch.Size([batch_size, 1, image_size, image_size]), dtype=torch.float32, device=device)
 generated_images = []
@@ -71,7 +71,10 @@ generated_image = generated_image.astype('uint8').squeeze()
 show_stats_np_tensor(generated_image, "generated_image")
 
 for img_index in range(batch_size):
-    if batch_size > 1:
+    if batch_size > 8:
+        axes[np.floor(img_index/8.0).astype('int'), img_index%8].imshow(generated_image[img_index], cmap='gray')
+        axes[np.floor(img_index/8.0).astype('int'), img_index%8].axis('off')
+    elif 8 >= batch_size > 1:
         axes[img_index].imshow(generated_image[img_index], cmap='gray')
         axes[img_index].axis('off')
     else:
