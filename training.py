@@ -29,7 +29,11 @@ def show_diffusion_chain(clean_image, epsilon, T):
 
 def train(model, optimizer, loss_function, training_loader, epochs_num, device, T):
     running_loss = 0.
-    last_loss = 0.
+    clean_t_running_loss = 0 # running loss for the 5% smallest values of t: [0,0.05*T]
+    last_loss = np.inf
+    clean_t_last_loss = np.inf
+    clean_t_samples = 0
+
     beta = np.linspace(1e-4, 0.02, num=T)
 
     model.to(device)
@@ -39,6 +43,7 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
 
     for epoch in range(epochs_num):
         print("epoch:", epoch)
+        ts = []
         for i, data in tqdm(enumerate(training_loader)):
             optimizer.zero_grad()
             x0, _ = data
@@ -46,6 +51,7 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
             x0 = x0.to(device)
             epsilon = torch.randn(x0.shape, dtype=x0.dtype, device=device)
             t = int(torch.randint(1, T, (1,), dtype=x0.dtype, device=device))
+            ts.append(t)
 
             alpha_1_to_t_array = []
             for i in range(1,t+1):
@@ -65,14 +71,31 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
+            if t <= int(0.05*T):
+                clean_t_running_loss += loss.item()
+                clean_t_samples += 1
+
+        # print("ts uniques #:", len(np.unique(ts)))
+        # print("ts min/max:", np.min(ts), np.max(ts))
 
         last_loss = running_loss/len(training_loader)
         print("loss:", last_loss)
+        print("clean_t loss:", clean_t_last_loss)
         running_loss = 0
 
-    model_name = './models/model_' + dataset_name + "_" + str(round(last_loss,4)) + '.pth'
-    torch.save(model, model_name)
-    print('saved model to:', model_name)
+        if epoch%10==0 and epoch>0:
+            model_name = './models/model_' + dataset_name + "_" + str(round(last_loss,4)) + "_cleanloss_" + str(round(clean_t_last_loss,4)) + '.pth'
+            torch.save(model, model_name)
+            print('saved model to:', model_name)
+
+        # print("clean_t_samples:", clean_t_samples)
+        # print("clean_t_running_loss:", clean_t_running_loss)
+
+        if clean_t_samples > 20:
+            clean_t_last_loss = clean_t_running_loss / clean_t_samples
+            clean_t_running_loss = 0
+            clean_t_samples = 0
+
 
 def loss_function_mse(epsilon, epsilon_pred):
     loss = F.mse_loss(epsilon, epsilon_pred, reduction='none')
