@@ -19,15 +19,18 @@ def show_diffusion_chain(clean_image, epsilon, T):
         noisy_image = torch.sqrt(alpha_t_bar) * clean_image + torch.sqrt(1 - alpha_t_bar) * epsilon
 
         noisy_image_transpose = np.transpose(dt(noisy_image), (1, 2, 0))
-        noisy_image_transpose = torch.Tensor(noisy_image_transpose).to(device)
+        # noisy_image_transpose = torch.Tensor(noisy_image_transpose).to(device)
+        min_img, max_img = np.min(noisy_image_transpose), np.max(noisy_image_transpose)
+        noisy_image_transpose = 255.0 * ((noisy_image_transpose - min_img) / (max_img - min_img))
+        noisy_image_transpose = noisy_image_transpose.astype('uint8')
 
-        axes[math.floor(noise_index/10.0), noise_index%10].imshow(dt(noisy_image_transpose), cmap='gray')
+        axes[math.floor(noise_index/10.0), noise_index%10].imshow(noisy_image_transpose) #, cmap='viridis')
         axes[math.floor(noise_index/10.0), noise_index%10].axis('off')
 
     plt.tight_layout()
     plt.show()
 
-def train(model, optimizer, loss_function, training_loader, epochs_num, device, T):
+def train(model, optimizer, loss_function, training_loader, epochs_num, device, T, model_metadata):
     running_loss = 0.
     clean_t_running_loss = 0 # running loss for the 5% smallest values of t: [0,0.05*T]
     last_loss = np.inf
@@ -84,7 +87,7 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
         running_loss = 0
 
         if epoch%10==0 and epoch>0:
-            model_name = './models/model_' + dataset_name + "_" + str(round(last_loss,4)) + "_cleanloss_" + str(round(clean_t_last_loss,4)) + '.pth'
+            model_name = './models/model_' + dataset_name + "_" + model_metadata + "_" + str(round(last_loss,4)) + "_cleanloss_" + str(round(clean_t_last_loss,4)) + '.pth'
             torch.save(model, model_name)
             print('saved model to:', model_name)
 
@@ -96,6 +99,9 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
             clean_t_running_loss = 0
             clean_t_samples = 0
 
+    model_name = './models/model_' + dataset_name + "_" + model_metadata + "_" + str(round(last_loss, 4)) + "_cleanloss_" + str(round(clean_t_last_loss, 4)) + '.pth'
+    torch.save(model, model_name)
+    print('saved model to:', model_name)
 
 def loss_function_mse(epsilon, epsilon_pred):
     loss = F.mse_loss(epsilon, epsilon_pred, reduction='none')

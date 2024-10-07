@@ -6,15 +6,17 @@ from torchvision.datasets import ImageFolder
 from torchvision.datasets import CIFAR10
 from torchvision import transforms
 
-def create_dataloader(data_path, image_size, batch_size, dataset_name):
-    transform = transforms.Compose([
-        # transforms.Lambda(lambda pil_image: center_crop_arr(pil_image, args.image_size)),
+def create_dataloader(data_path, image_size, batch_size, dataset_name, gray):
+    transforms_list = [
         transforms.Resize((image_size, image_size)),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5], inplace=True),
-        transforms.Grayscale()
-    ])
+    ]
+    if gray:
+        transforms_list.append(transforms.Grayscale())
+
+    transform = transforms.Compose(transforms_list)
 
     dataset = ImageFolder(data_path, transform=transform)
 
