@@ -1,5 +1,5 @@
 import gc
-
+import time
 import numpy as np
 from matplotlib import pyplot as plt
 from utils import *
@@ -10,7 +10,7 @@ from tqdm import tqdm
 model_path = get_last_created_model()
 print("using model:", model_path)
 
-T = 500
+T = 1000
 num_intervals = T
 image_size = 64
 batch_size = 32
@@ -105,7 +105,12 @@ for img_index in range(batch_size):
     else:
         plt.imshow(noisy_image_transposed, cmap='gray')
 
+timestr = time.strftime("%Y%m%d-%H%M%S")
+saved_img_out_path = os.path.join('results', os.path.basename(model_path).replace('.pth','') + "_" + timestr + ".png")
+
 plt.tight_layout()
 plt.title(os.path.basename(model_path))
+plt.savefig(saved_img_out_path, dpi=300, bbox_inches='tight')
+print("saved to:", saved_img_out_path)
 plt.show()
 print("done")

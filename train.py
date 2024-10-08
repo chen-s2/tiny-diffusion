@@ -5,11 +5,11 @@ from training import train, loss_function_mse
 if __name__ == "__main__":
     image_size = 64
     batch_size = 64
-    epochs_num = 100
+    epochs_num = 50
     c_latent = 3
     T = 1000
     gray = False
-    load_model_path = None # get_last_created_model()
+    load_model_path = get_last_created_model()
     apply_attn = [False, False, True, False]
     model_metadata = "rgb"
     time_emb_dim = image_size
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     else:
         model = UNet(n_channels=c_latent, time_emb_dim_param=time_emb_dim, device=device, apply_attn=apply_attn)
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=1e-2)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-2)
 
     training_loader = create_dataloader("./data/butterfly/train_and_test", image_size, batch_size, dataset_name="butterfly", gray=gray)
     # training_loader = create_dataloader_cifar(image_size, batch_size)
