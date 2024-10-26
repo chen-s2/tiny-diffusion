@@ -1,6 +1,7 @@
 import torch
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
+
 from torch.utils.data import DataLoader, Sampler
 from torchvision.datasets import ImageFolder
 from torchvision.datasets import CIFAR10
@@ -34,9 +35,7 @@ def create_dataloader(data_path, image_size, batch_size, dataset_name, gray):
     return loader
 
 def create_dataloader_cifar(image_size, batch_size, train_or_test='train'):
-    # Define the transformation for the dataset
     transform = transforms.Compose([
-        # transforms.Lambda(lambda pil_image: center_crop_arr(pil_image, args.image_size)),
         transforms.Resize((image_size, image_size)),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
@@ -44,7 +43,6 @@ def create_dataloader_cifar(image_size, batch_size, train_or_test='train'):
         transforms.Grayscale()
     ])
 
-    # Load the CIFAR-10 dataset
     train_dataset = CIFAR10(root='./data', train=True, transform=transform)
     test_dataset = CIFAR10(root='./data', train=False, transform=transform)
 

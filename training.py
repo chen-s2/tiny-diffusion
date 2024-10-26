@@ -19,7 +19,7 @@ def show_diffusion_chain(clean_image, epsilon, T):
         noisy_image = torch.sqrt(alpha_t_bar) * clean_image + torch.sqrt(1 - alpha_t_bar) * epsilon
 
         noisy_image_transpose = np.transpose(dt(noisy_image), (1, 2, 0))
-        # noisy_image_transpose = torch.Tensor(noisy_image_transpose).to(device)
+
         min_img, max_img = np.min(noisy_image_transpose), np.max(noisy_image_transpose)
         noisy_image_transpose = 255.0 * ((noisy_image_transpose - min_img) / (max_img - min_img))
         noisy_image_transpose = noisy_image_transpose.astype('uint8')
@@ -78,9 +78,6 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
                 clean_t_running_loss += loss.item()
                 clean_t_samples += 1
 
-        # print("ts uniques #:", len(np.unique(ts)))
-        # print("ts min/max:", np.min(ts), np.max(ts))
-
         last_loss = running_loss/len(training_loader)
         print("loss:", last_loss)
         print("clean_t loss:", clean_t_last_loss)
@@ -90,9 +87,6 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
             model_name = './models/model_' + dataset_name + "_" + model_metadata + "_" + str(round(last_loss,4)) + "_cleanloss_" + str(round(clean_t_last_loss,4)) + '.pth'
             torch.save(model, model_name)
             print('saved model to:', model_name)
-
-        # print("clean_t_samples:", clean_t_samples)
-        # print("clean_t_running_loss:", clean_t_running_loss)
 
         if clean_t_samples > 20:
             clean_t_last_loss = clean_t_running_loss / clean_t_samples
