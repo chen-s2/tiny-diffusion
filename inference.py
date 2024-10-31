@@ -75,10 +75,9 @@ def run_inference():
 generated_image = run_inference()
 timestr = time.strftime("%Y%m%d-%H%M%S")
 
-np.savez("gen_image_" + timestr + ".npz", generated_image)
+# np.savez("gen_image_" + timestr + ".npz", generated_image)
 
 num_images_generated = batch_size
-
 saved_img_name = os.path.basename(model_path).replace('.pth','') + "_" + timestr + ".png"
 saved_img_out_path = os.path.join('results', saved_img_name)
 
