@@ -3,15 +3,15 @@ from dataset import *
 from training import train, loss_function_mse
 
 if __name__ == "__main__":
-    image_size = 64
+    image_size = 48
     batch_size = 64
-    epochs_num = 50
+    epochs_num = 100
     c_latent = 1
     T = 1000
-    load_model_path = get_last_created_model()
-    # load_model_path = None
+    # load_model_path = get_last_created_model()
+    load_model_path = None
     apply_attn = [False, False, True, False]
-    model_metadata = "rgb"
+    model_metadata = "binary"
     time_emb_dim = image_size
     device = 'cuda'
 

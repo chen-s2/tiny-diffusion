@@ -5,13 +5,14 @@ from pathlib import Path
 from unet import *
 import torch
 from tqdm import tqdm
+from transforms import *
 
 model_path = get_last_created_model()
 print("using model:", model_path)
 
 T = 1000
 num_intervals = T
-image_size = 64
+image_size = 48
 batch_size = 64
 transition_between_two_latent_values = True
 channels_num = 1
@@ -80,6 +81,7 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 num_images_generated = batch_size
 saved_img_name = os.path.basename(model_path).replace('.pth','') + "_" + timestr + ".png"
 saved_img_out_path = os.path.join('results', saved_img_name)
+line_drawing_transform = LineDrawingTransform(threshold1=50, threshold2=150)
 
 for img_index in range(batch_size):
     noisy_image_transposed = np.transpose(generated_image[img_index], (1, 2, 0))
@@ -92,6 +94,7 @@ for img_index in range(batch_size):
         normalized_image[:, :, channel] = 255.0 * ((noisy_image_transposed[:, :, channel] - min_img_in_channel) / (max_img_in_channel - min_img_in_channel))
     noisy_image_transposed = normalized_image
     noisy_image_transposed = noisy_image_transposed.astype('uint8').squeeze()
+    noisy_image_transposed = line_drawing_transform(noisy_image_transposed)
 
     model_name = os.path.basename(model_path).replace('.pth','')
     saved_frame_path = os.path.join('results', model_name,  saved_img_name.replace('.png', '_frame_' + str(img_index) + '.png'))
