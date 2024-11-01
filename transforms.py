@@ -16,13 +16,13 @@ class LineDrawingTransform:
         self.threshold2 = threshold2
 
     def __call__(self, img):
-        # Convert the PIL Image to a NumPy array
+        # Convert the PIL Image to a NumPy array`
         img_np = np.array(img)
 
         # Convert to grayscale
-        if img_np.shape[0] == 3:
+        if len(img_np.shape) == 3 and img_np.shape[2] == 3:
             gray_image = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
-        elif img_np.shape[0] == 1 or len(img_np.shape) == 2:
+        elif len(img_np.shape) == 2 or img_np.shape[2] == 1:
             gray_image = img_np
         else:
             raise ValueError("unknown image shape:", img_np.shape)

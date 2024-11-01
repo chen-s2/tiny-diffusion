@@ -1,4 +1,5 @@
 import gc
+import shutil
 import time
 from pathlib import Path
 
@@ -12,7 +13,7 @@ print("using model:", model_path)
 
 T = 1000
 num_intervals = T
-image_size = 48
+image_size = 64
 batch_size = 64
 transition_between_two_latent_values = True
 channels_num = 1
@@ -73,6 +74,12 @@ def run_inference():
 
     return generated_image
 
+model_name = os.path.basename(model_path).replace('.pth','')
+saved_dir = os.path.join('results', model_name)
+if os.path.exists(saved_dir):
+    shutil.rmtree(saved_dir)
+os.makedirs(saved_dir)
+
 generated_image = run_inference()
 timestr = time.strftime("%Y%m%d-%H%M%S")
 
@@ -94,10 +101,9 @@ for img_index in range(batch_size):
         normalized_image[:, :, channel] = 255.0 * ((noisy_image_transposed[:, :, channel] - min_img_in_channel) / (max_img_in_channel - min_img_in_channel))
     noisy_image_transposed = normalized_image
     noisy_image_transposed = noisy_image_transposed.astype('uint8').squeeze()
-    noisy_image_transposed = line_drawing_transform(noisy_image_transposed)
+    # noisy_image_transposed = line_drawing_transform(noisy_image_transposed)
 
-    model_name = os.path.basename(model_path).replace('.pth','')
-    saved_frame_path = os.path.join('results', model_name,  saved_img_name.replace('.png', '_frame_' + str(img_index) + '.png'))
+    saved_frame_path = os.path.join(saved_dir, saved_img_name.replace('.png', '_frame_' + str(img_index) + '.png'))
     Path(os.path.dirname(saved_frame_path)).mkdir(parents=True, exist_ok=True)
 
     fig = plt.figure()
