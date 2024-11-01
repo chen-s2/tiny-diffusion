@@ -14,7 +14,7 @@ num_intervals = T
 image_size = 64
 batch_size = 64
 transition_between_two_latent_values = True
-channels_num = 3
+channels_num = 1
 
 model = torch.load(model_path)
 device = 'cuda'

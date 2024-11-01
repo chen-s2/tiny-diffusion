@@ -6,10 +6,10 @@ if __name__ == "__main__":
     image_size = 64
     batch_size = 64
     epochs_num = 50
-    c_latent = 3
+    c_latent = 1
     T = 1000
-    gray = False
     load_model_path = get_last_created_model()
+    # load_model_path = None
     apply_attn = [False, False, True, False]
     model_metadata = "rgb"
     time_emb_dim = image_size
@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.5e-4, weight_decay=1e-2)
 
-    training_loader = create_dataloader("./data/butterfly/train_and_test", image_size, batch_size, dataset_name="butterfly", gray=gray)
+    training_loader = create_dataloader("./data/butterfly/train_and_test", image_size, batch_size, dataset_name="butterfly")
     # training_loader = create_dataloader_cifar(image_size, batch_size)
 
     train(model=model, optimizer=optimizer, loss_function=loss_function_mse, training_loader=training_loader, epochs_num=epochs_num, device=device, T=T, model_metadata=model_metadata)
