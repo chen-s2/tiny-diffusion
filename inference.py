@@ -16,7 +16,7 @@ num_intervals = T
 image_size = 64
 batch_size = 64
 transition_between_two_latent_values = True
-channels_num = 1
+channels_num = 3
 
 model = torch.load(model_path)
 device = 'cuda'
@@ -88,7 +88,6 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 num_images_generated = batch_size
 saved_img_name = os.path.basename(model_path).replace('.pth','') + "_" + timestr + ".png"
 saved_img_out_path = os.path.join('results', saved_img_name)
-line_drawing_transform = LineDrawingTransform(threshold1=50, threshold2=150)
 
 for img_index in range(batch_size):
     noisy_image_transposed = np.transpose(generated_image[img_index], (1, 2, 0))
@@ -101,7 +100,6 @@ for img_index in range(batch_size):
         normalized_image[:, :, channel] = 255.0 * ((noisy_image_transposed[:, :, channel] - min_img_in_channel) / (max_img_in_channel - min_img_in_channel))
     noisy_image_transposed = normalized_image
     noisy_image_transposed = noisy_image_transposed.astype('uint8').squeeze()
-    # noisy_image_transposed = line_drawing_transform(noisy_image_transposed)
 
     saved_frame_path = os.path.join(saved_dir, saved_img_name.replace('.png', '_frame_' + str(img_index) + '.png'))
     Path(os.path.dirname(saved_frame_path)).mkdir(parents=True, exist_ok=True)

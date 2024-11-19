@@ -8,13 +8,10 @@ def show_stats_np_tensor(np_tensor, title):
     print(title, "min/max:", np.min(np_tensor), np.max(np_tensor))
     print(title, "shape:", np_tensor.shape)
 
-def show_image(img, title, block=False, cmap=None):
+def show_image(img, title, block=False):
     # get_tensor_stats(img, title)
     plt.figure()
-    if cmap:
-        plt.imshow(img[0,0,:,:].detach().cpu().numpy(), cmap=cmap)
-    else:
-        plt.imshow(img[0, 0, :, :].detach().cpu().numpy())
+    plt.imshow(img[0,0,:,:].detach().cpu().numpy())
     plt.title(title)
     plt.show(block=block)
 

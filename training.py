@@ -53,19 +53,8 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
             x0, _ = data
 
             x0 = x0.to(device)
-            # x0 = x0.bool()
-            # x0 = x0.to(torch.bfloat16) # TODO: move to a separate case/function for binary images!
-            # show_image(x0, 'x0', block=True, cmap='gray')
-            # continue
-
-            # TODO: move to a separate case/function for binary images!
-            # epsilon = torch.randn(x0.shape, dtype=x0.dtype, device=device)
-            epsilon = torch.randn(x0.shape, device=device).to(x0.dtype)
-
-            # TODO: move to a separate case/function for binary images!
-            # t = int(torch.randint(1, T, (1,), dtype=x0.dtype, device=device))
-            t = int(torch.randint(1, T, (1,), device=device).to(x0.dtype))
-
+            epsilon = torch.randn(x0.shape, dtype=x0.dtype, device=device)
+            t = int(torch.randint(1, T, (1,), dtype=x0.dtype, device=device))
             ts.append(t)
 
             alpha_1_to_t_array = []
