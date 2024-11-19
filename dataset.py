@@ -28,7 +28,7 @@ def create_dataloader(data_path, image_size, batch_size, dataset_name):
         pin_memory=True,
         drop_last=True
     )
-    print(f"Dataset contains {len(dataset):,} images ({data_path})")
+    print(f"dataset contains {len(dataset):,} images ({data_path})")
 
     loader.dataset_name = dataset_name
     return loader
