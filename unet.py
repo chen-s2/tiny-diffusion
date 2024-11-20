@@ -1,6 +1,6 @@
 import math
 from torch import nn
-from time_embed import Time, TimeLinearEmbedder, REF_get_timestep_embedding
+from time_embed import Time, TimeLinearEmbedder, get_timestep_embedding
 from torch.nn import functional as F
 from utils import *
 
@@ -192,7 +192,7 @@ class UNet(nn.Module):
         print("model's total params:", total_params)
 
     def forward(self, image, t):
-        t_emb = REF_get_timestep_embedding(timesteps=[t], embed_dim=self.time_emb_dim, dtype=torch.float32, device=self.device)
+        t_emb = get_timestep_embedding(timesteps=[t], embed_dim=self.time_emb_dim, dtype=torch.float32, device=self.device)
         t_emb = self.time_linear_embedder(t_emb.T)
 
         x1 = self.inc(image, t_emb)

@@ -6,7 +6,6 @@ from pathlib import Path
 from unet import *
 import torch
 from tqdm import tqdm
-from transforms import *
 
 model_path = get_last_created_model()
 print("using model:", model_path)

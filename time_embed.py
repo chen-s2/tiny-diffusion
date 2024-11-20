@@ -24,24 +24,20 @@ class TimeLinearEmbedder(nn.Module):
     def forward(self, t_emb):
         return self.embedder(t_emb)
 
-# TODO: rebuild yourself
-def REF_get_timestep_embedding(timesteps, embed_dim, dtype, device):
+def get_timestep_embedding(timesteps, embed_dim, dtype, device):
     """
-    Adapted from fairseq/fairseq/modules/sinusoidal_positional_embedding.py
-    The implementation is slightly different from the decription in Section 3.5 of [1]
-    [1] Vaswani, Ashish, et al. "Attention is all you need."
-     Advances in neural information processing systems 30 (2017).
+    adapted from: https://github.com/facebookresearch/fairseq/blob/main/fairseq/modules/sinusoidal_positional_embedding.py
     """
     timesteps = torch.Tensor(timesteps).to(device)
     half_dim = embed_dim // 2
-    embed = math.log(10000) / (half_dim - 1)
-    embed = torch.exp(-torch.arange(half_dim, dtype=dtype, device=device) * embed)
-    embed = torch.outer(timesteps.ravel().to(dtype), embed)
-    embed = torch.cat([torch.sin(embed), torch.cos(embed)], dim=1)
+    embedding = math.log(10000) / (half_dim - 1)
+    embedding = torch.exp(-torch.arange(half_dim, dtype=dtype, device=device) * embedding)
+    embedding = torch.outer(timesteps.ravel().to(dtype), embedding)
+    embedding = torch.cat([torch.sin(embedding), torch.cos(embedding)], dim=1)
     if embed_dim % 2 == 1:
-        embed = F.pad(embed, [0, 1])  # padding the last dimension
-    assert embed.dtype == dtype
-    return embed
+        embedding = F.pad(embedding, [0, 1])  # padding the last dimension
+    assert embedding.dtype == dtype
+    return embedding
 
 
 

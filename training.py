@@ -2,6 +2,8 @@ from unet import *
 from tqdm import tqdm
 
 def show_diffusion_chain(clean_image, epsilon, T):
+    ''' for debugging '''
+
     num_noise_levels = 20
     beta = np.linspace(1e-4, 0.02, num=T)
     timesteps = np.linspace(T-1, 1, num=num_noise_levels).astype('int')
@@ -31,9 +33,13 @@ def show_diffusion_chain(clean_image, epsilon, T):
     plt.tight_layout()
     plt.show()
 
+def loss_function_mse(epsilon, epsilon_pred):
+    loss = F.mse_loss(epsilon, epsilon_pred, reduction='none')
+    return loss.mean()
+
 def train(model, optimizer, loss_function, training_loader, epochs_num, device, T, model_metadata):
     running_loss = 0.
-    clean_t_running_loss = 0 # running loss for the 5% smallest values of t: [0,0.05*T]
+    clean_running_loss = 0  # running loss for the 5% cleanest images (t values in range [0,0.05*T])
     last_loss = np.inf
     clean_t_last_loss = np.inf
     clean_t_samples = 0
@@ -48,6 +54,7 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
     for epoch in range(epochs_num):
         print("epoch:", epoch)
         ts = []
+
         for i, data in tqdm(enumerate(training_loader)):
             optimizer.zero_grad()
             x0, _ = data
@@ -66,22 +73,20 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
             noisy_image = torch.sqrt(alpha_t_bar) * x0 + torch.sqrt(1-alpha_t_bar) * epsilon
 
             # show_diffusion_chain(clean_image=x0[0], epsilon=epsilon[0], T=T)
-            # quit()
 
             epsilon_pred = model(image=noisy_image, t=t)
 
-            loss = loss_function(epsilon, epsilon_pred)  # todo: why don't we minimize the diff between epsilon_pred and sqrt(1-alpha_t)*epsilon?
+            loss = loss_function(epsilon, epsilon_pred)
 
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
             if t <= int(0.05*T):
-                clean_t_running_loss += loss.item()
+                clean_running_loss += loss.item()
                 clean_t_samples += 1
 
         last_loss = running_loss/len(training_loader)
-        print("loss:", last_loss)
-        print("clean_t loss:", clean_t_last_loss)
+        print("loss:", last_loss, ", clean_t loss:", clean_t_last_loss)
         running_loss = 0
 
         if epoch%10==0 and epoch>0:
@@ -90,15 +95,11 @@ def train(model, optimizer, loss_function, training_loader, epochs_num, device, 
             print('saved model to:', model_name)
 
         if clean_t_samples > 20:
-            clean_t_last_loss = clean_t_running_loss / clean_t_samples
-            clean_t_running_loss = 0
+            clean_t_last_loss = clean_running_loss / clean_t_samples
+            clean_running_loss = 0
             clean_t_samples = 0
 
     model_name = './models/model_' + dataset_name + "_" + model_metadata + "_" + str(round(last_loss, 4)) + "_cleanloss_" + str(round(clean_t_last_loss, 4)) + '.pth'
     torch.save(model, model_name)
     print('saved model to:', model_name)
-
-def loss_function_mse(epsilon, epsilon_pred):
-    loss = F.mse_loss(epsilon, epsilon_pred, reduction='none')
-    return loss.mean()
 

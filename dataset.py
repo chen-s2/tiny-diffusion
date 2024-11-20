@@ -2,21 +2,17 @@ import torch
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
 
-from torch.utils.data import DataLoader, Sampler
+from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
-from torchvision.datasets import CIFAR10
 from torchvision import transforms
-from transforms import *
 
-def create_dataloader(data_path, image_size, batch_size, dataset_name, gray):
+def create_dataloader(data_path, image_size, batch_size, dataset_name):
     transforms_list = [
         transforms.Resize((image_size, image_size)),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5], inplace=True),
     ]
-    if gray:
-        transforms_list.append(transforms.Grayscale())
 
     transform = transforms.Compose(transforms_list)
 
@@ -26,7 +22,6 @@ def create_dataloader(data_path, image_size, batch_size, dataset_name, gray):
         dataset,
         batch_size=int(batch_size),
         shuffle=True,
-        # num_workers=4,
         pin_memory=True,
         drop_last=True
     )
