@@ -14,7 +14,7 @@ print("using model:", model_path)
 T = 1000
 num_intervals = T
 image_size = 64
-batch_size = 64
+batch_size = 16
 transition_between_two_latent_values = True
 channels_num = 3
 
