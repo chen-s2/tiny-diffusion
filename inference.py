@@ -23,7 +23,7 @@ device = 'cuda'
 
 timesteps = np.linspace(start=T,stop=1, num=num_intervals).astype('int')
 beta = np.linspace(1e-4, 0.02, num=T)
-beta = np.concatenate(([0.0],beta)) # for indexing between [1,T] instead of [0,T-1]
+beta = np.concatenate(([0.0],beta))  # index between [1,T] instead of [0,T-1]
 beta = torch.Tensor(beta)
 
 def calculate_latent_transition(z):
@@ -74,24 +74,8 @@ def run_inference():
 
     return generated_image
 
-model_name = os.path.basename(model_path).replace('.pth','')
-saved_dir = os.path.join('results', model_name)
-if os.path.exists(saved_dir):
-    shutil.rmtree(saved_dir)
-os.makedirs(saved_dir)
-
-generated_image = run_inference()
-timestr = time.strftime("%Y%m%d-%H%M%S")
-
-# np.savez("gen_image_" + timestr + ".npz", generated_image)
-
-num_images_generated = batch_size
-saved_img_name = os.path.basename(model_path).replace('.pth','') + "_" + timestr + ".png"
-saved_img_out_path = os.path.join('results', saved_img_name)
-
-for img_index in range(batch_size):
+def save_image(generated_image, img_index, saved_dir, saved_img_name):
     noisy_image_transposed = np.transpose(generated_image[img_index], (1, 2, 0))
-
     normalized_image = np.zeros(noisy_image_transposed.shape)
 
     for channel in range(channels_num):
@@ -101,7 +85,7 @@ for img_index in range(batch_size):
     noisy_image_transposed = normalized_image
     noisy_image_transposed = noisy_image_transposed.astype('uint8').squeeze()
 
-    saved_frame_path = os.path.join(saved_dir, saved_img_name.replace('.png', '_frame_' + str(img_index) + '.png'))
+    saved_frame_path = os.path.join(saved_dir, saved_img_name.replace('.png', '_frame_' + f"{img_index:03}" + '.png'))
     Path(os.path.dirname(saved_frame_path)).mkdir(parents=True, exist_ok=True)
 
     fig = plt.figure()
@@ -111,3 +95,24 @@ for img_index in range(batch_size):
     plt.savefig(saved_frame_path, transparent=True, bbox_inches='tight', pad_inches=0)
     print("saved to:", saved_frame_path)
     plt.close(fig)
+
+model_name = os.path.basename(model_path).replace('.pth','')
+
+saved_dir = os.path.join('results', model_name)
+
+if os.path.exists(saved_dir):
+    shutil.rmtree(saved_dir)
+os.makedirs(saved_dir)
+
+generated_image = run_inference()
+
+timestr = time.strftime("%Y%m%d-%H%M%S")
+
+num_images_generated = batch_size
+saved_img_name = os.path.basename(model_path).replace('.pth','') + "_" + timestr + ".png"
+saved_img_out_path = os.path.join('results', saved_img_name)
+
+for img_index in range(batch_size):
+    save_image(generated_image, img_index, saved_dir, saved_img_name)
+
+create_video_from_images_dir(saved_dir, fps=10)

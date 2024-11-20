@@ -27,7 +27,6 @@ class Conv2dDouble(nn.Module):
         self.in_chan = in_chan
         self.mid_chan = mid_chan
         self.out_chan = out_chan
-        # self.drop = nn.Dropout(p=0.1, inplace=True)
 
     def forward(self, x, t_emb):
         x = self.conv1(x)
@@ -36,7 +35,6 @@ class Conv2dDouble(nn.Module):
         t_emb_lin = t_emb_lin.unsqueeze(0).unsqueeze(0).expand(x.shape[0], x.shape[1], -1, -1)
         t_emb_lin = F.interpolate(t_emb_lin, size=(x.shape[2:4]), mode='bilinear', align_corners=False)
         x = x + t_emb_lin
-        # x = self.drop(x)
 
         x = self.conv2(x)
         return x
@@ -89,12 +87,11 @@ class UpModule(nn.Module):
         self.apply_attn = apply_attn
 
     def forward(self, x, horziontal_residual, t_emb):
-        # horziontal_residual is passed from a parallel downsampling layer to this upsampling layer
         x = self.upsample(x)
 
         skip = self.skip(x)
 
-        x = torch.cat([horziontal_residual,x], dim=1)
+        x = torch.cat([horziontal_residual,x], dim=1) # horziontal_residual is passed from a parallel downsampling layer to this upsampling layer
 
         x = self.conv_double(x, t_emb)
 
@@ -181,7 +178,7 @@ class UNet(nn.Module):
         self.middle = MiddleModule(512, 512)
 
         self.up1 = UpModule(1024, 512, 256, apply_attn[0])
-        self.up2 = UpModule(512, 256, 128, apply_attn[1]) # in_chan of curr layer != out_chan of previous layer, since in the upstream layers we *concatenate the input tensor with a residual from the parallel downstream layer*
+        self.up2 = UpModule(512, 256, 128, apply_attn[1]) # in_chan of current layer != out_chan of previous layer, since in the upstream layers we *concatenate the input tensor with a residual from the parallel downstream layer*
         self.up3 = UpModule(256, 128, 64, apply_attn[2])
         self.up4 = UpModule(128, 64, 64, apply_attn[3])
 
