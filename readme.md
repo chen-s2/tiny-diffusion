@@ -10,7 +10,7 @@ Train a diffusion model from scratch in 2 hours on a basic GPU.
 ####
 Create a latent traversal video (like the above) in 1 minute.
 ####
-Learn the basic implementation of image diffusion using this code.
+Learn the basic implementation of image diffusion and latent traversal using this code.
 
 ### Train
 1. Download the [Butterfly Dataset](https://www.kaggle.com/datasets/phucthaiv02/butterfly-image-classification) from Kaggle or get any dataset with 10K RGB images. 
@@ -30,7 +30,7 @@ my model reached a loss = 0.0289 and a clean loss = 0.2288.
 This model was trained from scratch on a single NVIDIA RTX 4060 Ti 16GB in ~2 hours.
 
 ### Notes
-This code is roughly based on the ddpm paper's method.
+This code is roughly based on the ddpm paper's method with some simplifications.
 
 ### References
 - https://arxiv.org/pdf/2006.11239
