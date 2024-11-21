@@ -1,4 +1,4 @@
-### tiny-diffusion
+### Tiny Diffusion
 
 [//]: # (![Example]&#40;./sample.gif&#41;)
 <div align="center">
