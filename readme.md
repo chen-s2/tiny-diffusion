@@ -8,7 +8,7 @@
 ####
 Train a diffusion model from scratch in 2 hours on a basic GPU, create a latent traversal video in 1 minute.
 ####
-This project shows a basic implementation of image diffusion and latent traversal.
+This project shows a basic implementation of image diffusion and also latent traversal.
 ####
 It's roughly based on the ddpm paper.
 ####
