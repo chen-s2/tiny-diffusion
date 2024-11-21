@@ -1,7 +1,9 @@
 ### tiny-diffusion
 
 [//]: # (![Example]&#40;./sample.gif&#41;)
+<div align="center">
 <img src="./sample.gif" width="150" alt="Description">
+</div>
 
 Train a diffusion model from scratch in 2 hours on a basic GPU.  
 
