@@ -1,8 +1,12 @@
 ### tiny diffusion
 
-![Example](./sample.gif)
+[//]: # (![Example]&#40;./sample.gif&#41;)
+<img src="./sample.gif" width="150" alt="Description">
 
 train a diffusion model from scratch in 2 hours on a basic gpu  
+
+this project shows a basic implementation of image diffusion and latent traversal,
+it's roughly based on the ddpm paper. 
 
 
 ### train
@@ -17,3 +21,5 @@ train a diffusion model from scratch in 2 hours on a basic gpu
 ### inference
 1. run inference.py
 2. see 'results' dir for the generated output images
+
+### references
