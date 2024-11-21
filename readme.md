@@ -6,7 +6,7 @@
 </div>
 
 ####
-Train a diffusion model from scratch on a 64x64 dataset in 2 hours using a basic GPU.
+Train a diffusion model from scratch in 2 hours using a basic GPU.
 ####
 Create a latent traversal video (like the above) in 1 minute.
 ####
@@ -30,7 +30,8 @@ my model reached a loss = 0.0289 and a clean loss = 0.2288.
 This model was trained from scratch on a single NVIDIA RTX 4060 Ti 16GB in ~2 hours.
 
 ### Notes
-This code is roughly based on the ddpm paper's method with some simplifications.
+This code is roughly based on the ddpm paper's method with some simplifications.</br>
+I've used a dataset of 10,000 RGB images with a resolution of 64x64.
 
 ### References
 - https://arxiv.org/pdf/2006.11239
