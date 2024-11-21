@@ -8,17 +8,13 @@
 ####
 Train a diffusion model from scratch in 2 hours on a basic GPU.
 ####
-Create a latent traversal video in 1 minute.
+Create a latent traversal video (like the above) in 1 minute.
 ####
-This project shows a basic implementation of image diffusion and also latent traversal.
-####
-It's roughly based on the ddpm paper.
-####
+Learn the basic implementation of image diffusion using this code.
 
 ### Train
 1. Download the [Butterfly Dataset](https://www.kaggle.com/datasets/phucthaiv02/butterfly-image-classification) from Kaggle or get any dataset with 10K RGB images. 
-2. Place all images (train and test set) in the same dir
-3. Pass the dir to train.py
+2. Put all images (train and test set) in './data/butterfly/train_and_test/butterfly'
 4. Run train.py, this is the training schedule I used:
    - 100 epochs with learning rate = 1e-4 
    - 50 epochs with learning rate = 0.5e-4
@@ -28,9 +24,17 @@ my model reached a loss = 0.0289 and a clean loss = 0.2288.
 
 ### Inference
 1. Run inference.py
-2. Generated images will appear in the 'results' dir
+2. Generated images will appear in './results'
 
 ### Hardware
 This model was trained from scratch on a single NVIDIA RTX 4060 Ti 16GB in ~2 hours.
 
+### Notes
+This code is roughly based on the ddpm paper's method.
+
 ### References
+- https://arxiv.org/pdf/2006.11239
+- https://github.com/milesial/Pytorch-UNet
+- https://github.com/tqch/ddpm-torch
+- https://www.kaggle.com/datasets/phucthaiv02/butterfly-image-classification 
+- https://github.com/facebookresearch/fairseq/blob/main/fairseq/modules/sinusoidal_positional_embedding.py
