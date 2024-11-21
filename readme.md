@@ -13,7 +13,7 @@ Create a latent traversal video (like the above) in 1 minute.
 Learn the basic implementation of image diffusion and latent traversal using this code.
 
 ### Train
-1. Download the [Butterfly Dataset](https://www.kaggle.com/datasets/phucthaiv02/butterfly-image-classification) from Kaggle or get any dataset with 10K RGB images. 
+1. Download the [Butterfly Dataset](https://www.kaggle.com/datasets/phucthaiv02/butterfly-image-classification) from Kaggle or get any dataset with ~10K RGB images. 
 2. Put all images (train and test set) in './data/butterfly/train_and_test/butterfly'
 4. Run train.py, this is the training schedule I used:
    - 100 epochs with learning rate = 1e-4 
