@@ -2,11 +2,11 @@
 
 [//]: # (![Example]&#40;./sample.gif&#41;)
 <div align="center">
-<img src="./sample.gif" width="150" alt="Description">
+<img src="./sample.mp4" width="150" alt="Description">
 </div>
 
 ####
-Train a diffusion model from scratch in 2 hours on a basic GPU.
+Train a diffusion model from scratch on a 64x64 dataset in 2 hours using a basic GPU.
 ####
 Create a latent traversal video (like the above) in 1 minute.
 ####

@@ -50,7 +50,7 @@ def rename_images_in_directory(directory, start_number=5000):
 def list_files_with_suffix(directory, suffix):
     return [os.path.join(directory, file) for file in os.listdir(directory) if file.endswith(suffix)]
 
-def create_video_from_images_dir(image_dir, fps=10):
+def create_video_from_images_dir(image_dir, fps=10, target_res=128):
     image_paths = list_files_with_suffix(image_dir, '.png')
     output_path = os.path.join(image_dir, 'clip.mp4')
 
@@ -59,6 +59,8 @@ def create_video_from_images_dir(image_dir, fps=10):
 
     # Read the first image to determine the frame size
     first_image = cv2.imread(sorted_paths[0])
+    first_image = cv2.resize(first_image, (target_res, target_res))
+
     height, width, layers = first_image.shape
 
     # Define the codec and create a VideoWriter object
@@ -68,6 +70,7 @@ def create_video_from_images_dir(image_dir, fps=10):
     for image_path in sorted_paths:
         # Read the image
         img = cv2.imread(image_path)
+        img = cv2.resize(img, (target_res, target_res))
         if img is None:
             print(f"Warning: Unable to read {image_path}. Skipping.")
             continue
@@ -77,3 +80,6 @@ def create_video_from_images_dir(image_dir, fps=10):
     # Release the VideoWriter object
     video.release()
     print(f"Video saved to {output_path}")
+
+image_dir = r"C:\Development\Playground\stable-diffusion\results\awesome_v6"
+create_video_from_images_dir(image_dir)
