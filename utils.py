@@ -27,7 +27,11 @@ def get_last_created_model():
     directory = './models'
     files = [os.path.join(directory, f) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
     sorted_files = sorted(files, key=os.path.getmtime, reverse=True)
-    return sorted_files[0]
+    if len(sorted_files) == 0:
+        return None
+    else:
+        print("starting from:", sorted_files[0])
+        return sorted_files[0]
 
 def get_last_generation():
     directory = './'

@@ -14,8 +14,7 @@ if __name__ == "__main__":
     dataset_subdir_name = "train_and_test"
     dataset_root = os.path.join('data', dataset_name, dataset_subdir_name)
 
-    load_model_path = None # or resume using get_last_created_model()
-    # load_model_path = get_last_created_model()
+    load_model_path = get_last_created_model()
     apply_attn = [False, False, True, False]
     model_metadata = "rgb"
     time_emb_dim = image_size
