@@ -5,9 +5,12 @@
 <img src="./sample.gif" width="150" alt="Description">
 </div>
 
+
 Train a diffusion model from scratch in 2 hours on a basic GPU.  
 
-This project shows a basic implementation of image diffusion and latent traversal. It's roughly based on the ddpm paper. 
+This project shows a basic implementation of image diffusion and latent traversal.
+
+It's roughly based on the ddpm paper. 
 
 
 ### Train
@@ -18,7 +21,9 @@ This project shows a basic implementation of image diffusion and latent traversa
    - 100 epochs with learning rate = 1e-4 
    - 50 epochs with learning rate = 0.5e-4
    - 50 epochs with learning rate = 0.2e-4 
-5. For reaching the accuracy needed to generate samples like the above, my model reached a loss = 0.0289, and a clean loss = 0.2288.
+5. For reaching the accuracy needed to generate samples like the above, 
+my model reached a loss = 0.0289, and a clean loss = 0.2288.
+
 ### Inference
 1. Run inference.py
 2. See 'results' dir for the generated output images.
