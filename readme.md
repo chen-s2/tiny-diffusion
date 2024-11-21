@@ -4,13 +4,14 @@
 <div align="center">
 <img src="./sample.gif" width="150" alt="Description">
 </div>
+
 <br/>
-Train a diffusion model from scratch in 2 hours on a basic GPU.  
-
+Train a diffusion model from scratch in 2 hours on a basic GPU, then create a latent traversal video in ~1 minute.
+<br/>
 This project shows a basic implementation of image diffusion and latent traversal.
-
+<br/>
 It's roughly based on the ddpm paper. 
-
+<br/>
 
 ### Train
 1. Download the [Butterfly Dataset](https://www.kaggle.com/datasets/phucthaiv02/butterfly-image-classification) from Kaggle or get any dataset with 10K RGB images 
